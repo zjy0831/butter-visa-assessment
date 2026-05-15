@@ -42,7 +42,7 @@
 
 | 客户选择                               | 系统处理                                                   |
 | ---------------------------------- | ------------------------------------------------------ |
-| `No, visa support is not required` | 进入现有 EOR Onboarding `Place Order` 下单流程，不改变原有字段和接单逻辑      |
+| `No, visa support is not required` | 进入现有 EOR Onboarding `Place Order` 下单流程，不改变原有字段和接单逻辑    |
 | `Yes, visa support is required`    | 同一个 request 进入 Visa Assessment Pre-check 表单，正式接单前先完成评估 |
 
 ### 3.2 Visa Assessment Pre-check 表单
@@ -167,8 +167,7 @@ Client 可查看自己提交的 request 状态、预评估材料和预评估结�
 
 | Flow 节点                           | 主要处理人              | 进入条件                                   | 完成动作 / 分支                                                                              | Request Status                      |
 | --------------------------------- | ------------------ | -------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------- |
-| `Visa Support Decision`           | Client             | Client 创建 EOR Onboarding request       | 选择 No 进入 `Place Order`；选择 Yes 进入 `Visa Assessment Pre-check`                           | `pending`                           |
-| `Place Order`                     | Client             | Client 选择不需要 visa support             | 填写完整 EOR onboarding 下单信息，进入 `Confirm Order`                                           | `pending`                           |
+| `Place Order`                     | Client             | Client 选择不需要 visa support              | 填写完整 EOR onboarding 下单信息，进入 `Confirm Order`                                            | `pending`                           |
 | `Visa Assessment Pre-check`       | Client             | Client 选择需要 visa support               | 填写预评估字段并上传评估材料                                                                         | `pending`                           |
 | `Confirm Visa Assessment`         | SD / LS            | Client 提交预评估信息                         | Approved / Return to Client / Close Request                                            | `pending`，Close Request 时转 `closed` |
 | `Supplement Assessment Materials` | Client             | SD 要求补充                                | Client 补充字段或材料后重新提交                                                                    | `pending`                           |
@@ -308,3 +307,4 @@ flowchart TD
 - **需求文档**：`01_requirement_description/Butter/epic-eor/feature-visa-assessment-precheck/2026-05-15_IRP-331_Visa_Assessment_Pre-check_Flow.md`
 - **参考业务流程**：`backup/04_spec/Butter/epic-eor/feature-eor-onboarding/eor-2-0-onboarding-place-and-confirm-order-business-flow.md`
 - **文档日期**：2026-05-15
+

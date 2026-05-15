@@ -34,8 +34,9 @@ export default function App() {
             
             {/* Client Routes */}
             <Route path="/requests" element={<RequestsList requests={requests} />} />
-            <Route path="/requests/submit" element={<SubmitWizard onSubmit={handleCreateRequest} />} />
-            
+            <Route path="/requests/submit" element={<SubmitWizard requests={requests} onSubmit={handleCreateRequest} onUpdate={handleUpdateStatus} />} />
+            <Route path="/requests/detail" element={<ReviewDashboard requests={requests} onUpdate={handleUpdateStatus} role="client" />} />
+
             {/* SD Routes */}
             <Route path="/sd/review" element={<ReviewDashboard requests={requests} onUpdate={handleUpdateStatus} />} />
             

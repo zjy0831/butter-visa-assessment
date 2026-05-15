@@ -2,14 +2,12 @@ import { Status } from '../../types.ts';
 
 export const StatusBadge = ({ status }: { status: Status }) => {
   const configs: Record<Status, string> = {
-    [Status.Draft]: 'bg-slate-100 text-slate-600',
-    [Status.Submitted]: 'bg-blue-50 text-blue-600',
-    [Status.InAssessment]: 'bg-amber-50 text-amber-600',
-    [Status.NeedMoreInformation]: 'bg-orange-50 text-orange-600',
-    [Status.Approved]: 'bg-emerald-50 text-emerald-600',
-    [Status.Rejected]: 'bg-rose-50 text-rose-600',
-    [Status.ConvertedToOnboarding]: 'bg-indigo-50 text-indigo-600',
-    [Status.Cancelled]: 'bg-slate-100 text-slate-500',
+    [Status.Pending]: 'bg-amber-50 text-amber-700',
+    [Status.Processing]: 'bg-blue-50 text-blue-700',
+    [Status.Revoked]: 'bg-slate-100 text-slate-600',
+    [Status.Canceled]: 'bg-slate-100 text-slate-500',
+    [Status.Closed]: 'bg-rose-50 text-rose-700',
+    [Status.Completed]: 'bg-emerald-50 text-emerald-700',
   };
 
   return (

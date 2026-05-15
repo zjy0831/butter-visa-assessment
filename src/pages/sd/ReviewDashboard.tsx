@@ -14,31 +14,28 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AssessmentRequest, DocumentItem, Status } from '../../types.ts';
 
 interface ReviewDashboardProps {
   requests: AssessmentRequest[];
   onUpdate: (id: string, status: Status, additional?: Partial<AssessmentRequest>) => void;
+  role?: 'sd' | 'client';
 }
 
 type RequestView = 'list' | 'detail';
-type ConfirmTab = 'visa' | 'remarks';
+type ConfirmTab = 'candidate' | 'visa' | 'remarks';
+type AssessmentTab = 'visa' | 'remarks';
 type VisaScope = 'Employment' | 'Dependent';
-type VisaSection = 'person' | 'visaInfo' | 'materials';
-
-const listRows = [
-  { id: 'REQ-9330', candidate: 'jacky16', location: 'Singapore', status: 'Pending', step: 'N/A', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-9138', candidate: 'jacky16', location: 'Singapore', status: 'Processing', step: '2/4', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-8902', candidate: 'jacky16', location: 'Singapore', status: 'Processing', step: '2/4', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-8811', candidate: 'jacky16', location: 'Singapore', status: 'Canceled', step: 'N/A', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-7740', candidate: 'gelin2', location: 'Korea', status: 'Pending', step: 'N/A', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-6638', candidate: 'gelin2', location: 'Korea', status: 'Canceled', step: 'N/A', submitter: 'SD-Jelena Zhang' },
-  { id: 'REQ-5527', candidate: 'Keely', location: 'China Mainland', status: 'Processing', step: '0/4', submitter: 'Client-Jelena' },
-  { id: 'REQ-4432', candidate: 'Julian', location: 'Singapore', status: 'Processing', step: '2/4', submitter: 'Client-Jelena' },
-  { id: 'REQ-3324', candidate: 'Julian', location: 'Singapore', status: 'Canceled', step: 'N/A', submitter: 'Client-Jelena' },
-  { id: 'REQ-2219', candidate: 'Julian', location: 'Singapore', status: 'Canceled', step: 'N/A', submitter: 'SD-Jelena Zhang' },
-];
+type VisaSection = 'person' | 'visaInfo' | 'materials' | 'checklist';
+type TimelineItem = {
+  id: string;
+  date: string;
+  actor: string;
+  action: string;
+  state: 'active' | 'done';
+  meta?: string[];
+};
 
 const employmentVisaInfo: [string, string][] = [
   ['Employment Visa Type', 'Employment Pass'],
@@ -61,46 +58,14 @@ const dependentInfo: [string, string][] = [
   ['Current Residence', 'New Zealand'],
 ];
 
-const timeline = [
-  {
-    id: 'current',
-    date: '2026-05-15 14:13:08',
-    actor: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
-    action: 'Confirm Order [EoR - Onboarding]',
-    state: 'active',
-  },
-  {
-    id: 'submit',
-    date: '2026-05-15 14:11:38',
-    actor: '[Client Contact] Client-Jelena, Jelena1, jelena2',
-    action: 'Submit order',
-    state: 'done',
-    meta: ['User: Submit Order', 'Completion Date: 2026-05-15 14:13:09'],
-  },
-  {
-    id: 'return',
-    date: '2026-05-14 17:08:19',
-    actor: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
-    action: 'Confirm Order [EoR - Onboarding]',
-    state: 'done',
-    meta: ['User: Return to Client', 'Completion Date: 2026-05-15 14:11:39'],
-  },
-  {
-    id: 'created',
-    date: '2026-05-14 17:08:13',
-    actor: '[BIPO Service Delivery] SD-Jelena Zhang',
-    action: 'Submit Request',
-    state: 'done',
-    meta: ['Completion Date: 2026-05-14 17:08:18'],
-  },
-];
-
-export const ReviewDashboard = ({ requests, onUpdate }: ReviewDashboardProps) => {
+export const ReviewDashboard = ({ requests, onUpdate, role = 'sd' }: ReviewDashboardProps) => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get('id');
   const [view, setView] = useState<RequestView>(selectedId ? 'detail' : 'list');
   const [activeId, setActiveId] = useState(selectedId || requests[0]?.id);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === activeId) || requests[0],
@@ -118,6 +83,34 @@ export const ReviewDashboard = ({ requests, onUpdate }: ReviewDashboardProps) =>
     setSearchParams({});
   };
 
+  const handleProcess = () => {
+    if (!selectedRequest) return;
+
+    if (selectedRequest.currentTask === 'Confirm Visa Assessment') {
+      setIsAssessmentOpen(true);
+      return;
+    }
+
+    if (selectedRequest.currentTask === 'Confirm Order [EoR - Onboarding]') {
+      setIsConfirmOpen(true);
+      return;
+    }
+
+    if (selectedRequest.currentTask === 'Supplement Assessment Materials') {
+      navigate(`/requests/submit?mode=supplement&id=${selectedRequest.id}`);
+      return;
+    }
+
+    if (selectedRequest.currentTask === 'Complete Onboarding Info') {
+      navigate(`/requests/submit?mode=complete&id=${selectedRequest.id}`);
+      return;
+    }
+
+    if (selectedRequest.currentTask === 'Submit Order') {
+      navigate(`/requests/submit?mode=submit&id=${selectedRequest.id}`);
+    }
+  };
+
   if (!selectedRequest) {
     return <div className="p-8 text-sm text-slate-500">No requests available.</div>;
   }
@@ -129,8 +122,69 @@ export const ReviewDashboard = ({ requests, onUpdate }: ReviewDashboardProps) =>
       ) : (
         <RequestDetail
           request={selectedRequest}
+          role={role}
           onBack={backToList}
-          onOpenConfirm={() => setIsConfirmOpen(true)}
+          onProcess={handleProcess}
+          onApproveAssessment={() => {
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Pending, {
+              currentStage: 'onboarding_info_completion',
+              currentTask: 'Complete Onboarding Info',
+              pendingAssignee: '[Client Contact] Client-Jelena',
+              returnRemarks: undefined,
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Approved', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
+          }}
+          onCloseRequest={() => {
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Closed, {
+              currentStage: 'closed',
+              currentTask: 'Close Request',
+              pendingAssignee: 'N/A',
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Close Request', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
+          }}
+        />
+      )}
+
+      {isAssessmentOpen && (
+        <AssessmentModal
+          request={selectedRequest}
+          onClose={() => setIsAssessmentOpen(false)}
+          onReturn={() => {
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Pending, {
+              currentStage: 'client_supplement',
+              currentTask: 'Supplement Assessment Materials',
+              pendingAssignee: '[Client Contact] Client-Jelena',
+              returnRemarks: 'Please supplement the missing evaluation materials and confirm the candidate information before resubmitting.',
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Return to Client', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
+            setIsAssessmentOpen(false);
+          }}
+          onConfirm={() => {
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Pending, {
+              currentStage: 'onboarding_info_completion',
+              currentTask: 'Complete Onboarding Info',
+              pendingAssignee: '[Client Contact] Client-Jelena',
+              returnRemarks: undefined,
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Approved', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
+            setIsAssessmentOpen(false);
+          }}
         />
       )}
 
@@ -139,11 +193,31 @@ export const ReviewDashboard = ({ requests, onUpdate }: ReviewDashboardProps) =>
           request={selectedRequest}
           onClose={() => setIsConfirmOpen(false)}
           onReturn={() => {
-            onUpdate(selectedRequest.id, Status.NeedMoreInformation);
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Pending, {
+              currentStage: 'submit_order',
+              currentTask: 'Submit Order',
+              pendingAssignee: '[Client Contact] Client-Jelena',
+              returnRemarks: 'Candidate information needs to be corrected before SD can confirm the order.',
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Order [EoR - Onboarding]', meta: ['User: Return to Client', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
             setIsConfirmOpen(false);
           }}
           onNext={() => {
-            onUpdate(selectedRequest.id, Status.InAssessment);
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Processing, {
+              currentStage: 'service_order',
+              currentTask: 'Apply Visa Before Onboarding',
+              pendingAssignee: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
+              returnRemarks: undefined,
+              completedRecords: [
+                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Order [EoR - Onboarding]', meta: ['User: Confirm Order', `Completion Date: ${ts}`] },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
             setIsConfirmOpen(false);
           }}
         />
@@ -209,7 +283,7 @@ const RequestsQueue = ({
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-3">
-        <table className="w-full min-w-[1380px] text-sm">
+        <table className="w-full min-w-[1480px] text-sm">
           <thead className="bg-slate-100 text-left text-xs font-bold text-slate-700">
             <tr>
               <th className="px-3 py-4">Client</th>
@@ -222,54 +296,48 @@ const RequestsQueue = ({
               <th className="px-3 py-4">BIPO Service Delivery</th>
               <th className="px-3 py-4">Local Service Contact</th>
               <th className="px-3 py-4">Status</th>
+              <th className="px-3 py-4">Pending Task</th>
               <th className="px-3 py-4">Operation</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {listRows.map((row, index) => {
-              const request = requests[index % requests.length];
-              return (
-                <tr key={row.id} className={index === 3 ? 'bg-slate-100/80' : 'bg-white'}>
-                  <td className="px-3 py-4 text-slate-700">Zhappy</td>
-                  <td className="px-3 py-4 text-slate-700">zhappy</td>
-                  <td className="px-3 py-4 text-slate-700">{row.location}</td>
-                  <td className="px-3 py-4 text-slate-700">EoR</td>
-                  <td className="px-3 py-4 text-slate-700">Onboarding</td>
-                  <td className="px-3 py-4 text-slate-700">Candidate: {row.candidate}...</td>
-                  <td className="px-3 py-4 text-slate-700">
-                    <span className="inline-flex items-center gap-1"><User size={13} />{row.submitter}</span>
-                  </td>
-                  <td className="px-3 py-4 text-slate-700">SD-MichelleHou hou, ...</td>
-                  <td className="px-3 py-4 text-slate-700">LS-Jelena</td>
-                  <td className="px-3 py-3">
-                    <ProgressStatus status={row.status} step={row.step} />
-                  </td>
-                  <td className="px-3 py-4">
-                    <button
-                      onClick={() => onOpenDetail(request.id)}
-                      className="text-xs font-medium text-brand-blue hover:underline"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {requests.map((request, index) => (
+              <tr key={request.id} className={index === 1 ? 'bg-slate-100/80' : 'bg-white'}>
+                <td className="px-3 py-4 text-slate-700">{request.client}</td>
+                <td className="px-3 py-4 text-slate-700">{request.client.toLowerCase().replace(/\s+/g, '_')}</td>
+                <td className="px-3 py-4 text-slate-700">{request.workLocation}</td>
+                <td className="px-3 py-4 text-slate-700">EoR</td>
+                <td className="px-3 py-4 text-slate-700">Onboarding</td>
+                <td className="px-3 py-4 text-slate-700">Candidate: {request.candidateName}...</td>
+                <td className="px-3 py-4 text-slate-700">
+                  <span className="inline-flex items-center gap-1"><User size={13} />SD-Jelena Zhang</span>
+                </td>
+                <td className="px-3 py-4 text-slate-700">SD-MichelleHou hou, SD-Jelena Zhang</td>
+                <td className="px-3 py-4 text-slate-700">LS-Jelena</td>
+                <td className="px-3 py-3">
+                  <ProgressStatus request={request} />
+                </td>
+                <td className="max-w-[260px] px-3 py-4 text-slate-700">
+                  <span className="line-clamp-1">{request.currentTask}</span>
+                </td>
+                <td className="px-3 py-4">
+                  <button
+                    onClick={() => onOpenDetail(request.id)}
+                    className="text-xs font-medium text-brand-blue hover:underline"
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       <div className="flex h-12 items-center justify-center gap-4 border-t border-slate-200 bg-white text-xs text-slate-600">
-        <span>Total 418</span>
+        <span>Total {requests.length}</span>
         <button className="rounded border border-slate-200 px-4 py-2">30/page</button>
         <span className="font-bold text-brand-blue">1</span>
-        <span>2</span>
-        <span>3</span>
-        <span>4</span>
-        <span>5</span>
-        <span>6</span>
-        <span>...</span>
-        <span>14</span>
       </div>
     </div>
   );
@@ -277,13 +345,25 @@ const RequestsQueue = ({
 
 const RequestDetail = ({
   request,
+  role = 'sd',
   onBack,
-  onOpenConfirm,
+  onProcess,
+  onApproveAssessment,
+  onCloseRequest,
 }: {
   request: AssessmentRequest;
+  role?: 'sd' | 'client';
   onBack: () => void;
-  onOpenConfirm: () => void;
+  onProcess: () => void;
+  onApproveAssessment: () => void;
+  onCloseRequest: () => void;
 }) => {
+  const records = getTimeline(request);
+  const assigneeTag = role === 'sd' ? '[BIPO Service Delivery]' : '[Client Contact]';
+  const isCurrentUserAssignee = !!(request.pendingAssignee?.includes(assigneeTag));
+  const canProcess = isCurrentUserAssignee && request.status === Status.Pending && request.currentTask !== 'Close Request';
+  const canApproveAssessment = request.currentTask === 'Confirm Visa Assessment';
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
       <div className="flex h-16 items-center justify-between border-b border-slate-200 px-3">
@@ -307,7 +387,7 @@ const RequestDetail = ({
             <div className="relative bg-slate-50 px-6 py-6">
               <div className="absolute bottom-8 left-[25px] top-8 w-px bg-slate-200" />
               <div className="space-y-9">
-                {timeline.map((item) => (
+                {records.map((item) => (
                   <div key={item.id} className="relative flex gap-5">
                     <div className={`relative z-10 mt-1 h-3 w-3 rounded-full ${item.state === 'active' ? 'bg-amber-400' : 'bg-emerald-500'}`} />
                     <div className="min-w-0 flex-1">
@@ -319,23 +399,23 @@ const RequestDetail = ({
                         <p key={line} className="mt-2 text-sm text-slate-700">{line}</p>
                       ))}
                     </div>
-                    {item.state === 'active' ? (
+                    {item.state === 'active' && canProcess ? (
                       <div className="flex w-32 flex-col items-center gap-2">
                         <button
-                          onClick={onOpenConfirm}
-                          className="flex h-10 w-28 items-center justify-center gap-2 rounded bg-brand-blue text-sm font-bold text-white"
+                          onClick={onProcess}
+                          className="flex h-10 w-28 items-center justify-center gap-2 rounded text-sm font-bold bg-brand-blue text-white"
                         >
                           <ClipboardList size={15} />
                           Process
                         </button>
                         <button className="text-xs text-brand-blue">Not my task?</button>
                       </div>
-                    ) : (
+                    ) : item.state !== 'active' ? (
                       <button className="flex h-10 w-24 items-center justify-center gap-2 rounded border border-blue-200 bg-blue-50 text-sm font-bold text-brand-blue">
                         <Eye size={15} />
                         View
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -362,16 +442,16 @@ const RequestDetail = ({
             <InfoCard title="Request Info">
               <InfoGrid
                 rows={[
-                  ['Request ID', '202605141708169330'],
+                  ['Request ID', request.id],
                   ['Request Submitter', 'SD-Jelena Zhang'],
-                  ['Submit Time', '2026-05-14 17:08:16'],
+                  ['Submit Time', `${request.submittedDate} 17:08:16`],
                   ['Location', request.workLocation],
                   ['Project Name', '-'],
                   ['Service Type', 'EoR'],
                   ['Service Module', 'Onboarding'],
-                  ['Client/Client Code', 'Zhappy / zhappy'],
-                  ['Client Contact', 'Client-Jelena, Jelena1, jelena2'],
-                  ['BIPO Service Delivery', 'SD-MichelleHou hou, SD-Jelena Zhang'],
+                  ['Request Status', request.status],
+                  ['Pending Task', request.currentTask],
+                  ['Pending Assignee', request.pendingAssignee || 'N/A'],
                 ]}
               />
             </InfoCard>
@@ -381,9 +461,66 @@ const RequestDetail = ({
 
       <div className="flex justify-end gap-3 border-t border-slate-200 bg-white px-3 py-3">
         <button className="h-9 rounded border border-slate-200 px-7 text-sm font-bold">Export Request Info</button>
-        <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Withdraw Candidate</button>
-        <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Revoke Order</button>
-        <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Cancel Order</button>
+        {canApproveAssessment && (
+          <>
+            <button onClick={onApproveAssessment} className="h-9 rounded bg-brand-blue px-7 text-sm font-bold text-white">Approved</button>
+            <button onClick={onCloseRequest} className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Close Request</button>
+          </>
+        )}
+        {!canApproveAssessment && (
+          <>
+            <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Revoke Order</button>
+            <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Cancel Order</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AssessmentModal = ({
+  request,
+  onClose,
+  onReturn,
+  onConfirm,
+}: {
+  request: AssessmentRequest;
+  onClose: () => void;
+  onReturn: () => void;
+  onConfirm: () => void;
+}) => {
+  const [activeTab, setActiveTab] = useState<AssessmentTab>('visa');
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
+      <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
+        <ModalHeader title="SD Confirm Visa Assessment" onClose={onClose} />
+        <div className="mx-5 mb-5 grid grid-cols-2 overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300">
+          <button onClick={() => setActiveTab('visa')} className="text-left">
+            <StepCell active={activeTab === 'visa'}>Visa Requirements</StepCell>
+          </button>
+          <button onClick={() => setActiveTab('remarks')} className="text-left">
+            <StepCell active={activeTab === 'remarks'}>Remark & Attachment</StepCell>
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+          {activeTab === 'visa' ? <VisaRequirementView request={request} includeChecklist /> : <RemarkAttachmentView request={request} />}
+        </div>
+
+        <div className={`grid gap-3 bg-slate-50 px-4 py-3 ${activeTab === 'remarks' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
+          {activeTab === 'remarks' && (
+            <button onClick={() => setActiveTab('visa')} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Back</button>
+          )}
+          <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
+          <button
+            onClick={() => activeTab === 'visa' ? setActiveTab('remarks') : onConfirm()}
+            className="h-10 rounded bg-brand-blue text-sm font-bold text-white"
+          >
+            {activeTab === 'visa' ? 'Next' : 'Confirm'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -400,10 +537,86 @@ const ConfirmOrderModal = ({
   onReturn: () => void;
   onNext: () => void;
 }) => {
-  const [activeTab, setActiveTab] = useState<ConfirmTab>('visa');
-  const [activeScope, setActiveScope] = useState<VisaScope>('Employment');
-  const [activeSection, setActiveSection] = useState<VisaSection>('person');
+  const [activeTab, setActiveTab] = useState<ConfirmTab>('candidate');
 
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
+      <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
+        <ModalHeader title="Confirm Order [EoR - Onboarding]" onClose={onClose} />
+
+        <div className="mx-5 mb-6 grid grid-cols-3 overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300">
+          {['Confirm Request Info', 'Confirm Visa Type', 'Confirm Onboarding Flow'].map((step, index) => (
+            <React.Fragment key={step}>
+              <StepCell active={index === 0}>{step}</StepCell>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+          <div className="flex gap-9 border-b border-slate-200">
+            <TabButton active={activeTab === 'candidate'} onClick={() => setActiveTab('candidate')}>Candidate Info</TabButton>
+            <TabButton active={activeTab === 'visa'} onClick={() => setActiveTab('visa')}>Visa Requirements</TabButton>
+            <TabButton active={activeTab === 'remarks'} onClick={() => setActiveTab('remarks')}>Remarks & Attachments</TabButton>
+          </div>
+
+          {activeTab === 'candidate' && <CandidateInfoView request={request} />}
+          {activeTab === 'visa' && <VisaRequirementView request={request} includeChecklist />}
+          {activeTab === 'remarks' && <RemarkAttachmentView request={request} />}
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
+          <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
+          <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
+          <button onClick={onNext} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Next</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CandidateInfoView = ({ request }: { request: AssessmentRequest }) => (
+  <div className="pt-7">
+    <h3 className="text-2xl font-bold text-slate-800">{request.candidateName}</h3>
+    <p className="mt-2 text-sm text-slate-500">Onboard on 2025-01-01</p>
+    <div className="mt-5 flex gap-9 overflow-x-auto border-b border-slate-200">
+      {['Basic Info', 'Contact Info', 'Location Info', 'Contract', 'Payroll Info', 'Bank Info', 'Dependants Info', 'Manager', 'Work Visa', 'Emergency Contact Info'].map((tab, index) => (
+        <React.Fragment key={tab}>
+          <TabButton active={index === 0} onClick={() => undefined}>{tab}</TabButton>
+        </React.Fragment>
+      ))}
+    </div>
+    <ReadOnlyGrid
+      rows={[
+        ['First Name', '-'],
+        ['Middle Name', '-'],
+        ['Last Name', '-'],
+        ['Employee Name', request.candidateName],
+        ['Want To Be Called As', 'Mr'],
+        ['Gender', 'Male'],
+        ['Birth Date', '-'],
+        ['Join Date', '2025-01-01'],
+        ['Last Working Date', '-'],
+        ['Job Title(EN)', request.jobTitle],
+        ['Tax Account Number', '-'],
+        ['Nationality / Citizenship', request.nationality],
+      ]}
+    />
+    <div className="flex justify-center gap-3 pb-2">
+      <button className="h-9 rounded border border-blue-200 bg-blue-50 px-6 text-sm font-bold text-brand-blue">Edit Directly</button>
+      <button className="h-9 rounded border border-red-200 bg-red-50 px-6 text-sm font-bold text-red-500">Add Return Remarks</button>
+    </div>
+  </div>
+);
+
+const VisaRequirementView = ({
+  request,
+  includeChecklist,
+}: {
+  request: AssessmentRequest;
+  includeChecklist?: boolean;
+}) => {
+  const [activeScope, setActiveScope] = useState<VisaScope>('Employment');
+  const [activeSection, setActiveSection] = useState<VisaSection>('visaInfo');
   const documents = request.documents.length > 0 ? request.documents : fallbackDocuments;
   const personRows: [string, string][] =
     activeScope === 'Employment'
@@ -420,110 +633,113 @@ const ConfirmOrderModal = ({
       : dependentInfo;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
-      <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-medium text-slate-800">Confirm Order [EoR - Onboarding]</h2>
-            <Link to="#" className="text-xs text-brand-blue">Request Info</Link>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
-            <X size={18} />
-          </button>
-        </div>
+    <div className="pt-8">
+      <div className="grid grid-cols-2 gap-24 text-sm">
+        <ReadOnlyField label="Is a visa application required?" value={request.visaRequired === false ? 'NO' : 'YES'} />
+        <ReadOnlyField label="Visa Application Type" value={formatVisaApplicationType(request.visaApplyType)} />
+      </div>
 
-        <div className="mx-5 mb-6 grid grid-cols-3 overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300">
-          {['Confirm Request Info', 'Confirm Visa Type', 'Confirm Onboarding Flow'].map((step, index) => (
-            <div key={step} className={`relative flex h-10 items-center gap-3 px-5 ${index === 0 ? 'text-orange-500' : ''}`}>
-              <span className={`h-4 w-4 rounded-full border-2 ${index === 0 ? 'border-orange-400' : 'border-slate-300'}`} />
-              {step}
-              {index < 2 && <span className="absolute right-0 h-7 w-7 rotate-45 border-r border-t border-slate-300 bg-slate-100" />}
+      <div className="mt-7 flex gap-10 border-b border-slate-200">
+        {(['Employment', 'Dependent'] as VisaScope[]).map((scope) => (
+          <React.Fragment key={scope}>
+            <TabButton
+              active={activeScope === scope}
+              onClick={() => {
+                setActiveScope(scope);
+                setActiveSection('visaInfo');
+              }}
+            >
+              {scope} Visa
+            </TabButton>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="mt-5 flex gap-10 border-b border-slate-200">
+        <TabButton active={activeSection === 'person'} onClick={() => setActiveSection('person')}>
+          {activeScope === 'Employment' ? 'Candidate Info' : 'Dependent Info'}
+        </TabButton>
+        <TabButton active={activeSection === 'visaInfo'} onClick={() => setActiveSection('visaInfo')}>Visa Info</TabButton>
+        <TabButton active={activeSection === 'materials'} onClick={() => setActiveSection('materials')}>
+          <span className="inline-flex items-center gap-2">
+            <FileText size={15} />
+            Evaluation Materials
+          </span>
+        </TabButton>
+        {includeChecklist && (
+          <TabButton active={activeSection === 'checklist'} onClick={() => setActiveSection('checklist')}>
+            Confirm Document Checklist
+          </TabButton>
+        )}
+      </div>
+
+      {activeSection === 'person' && <ReadOnlyGrid rows={personRows} />}
+      {activeSection === 'visaInfo' && (
+        <ReadOnlyGrid rows={activeScope === 'Employment' ? employmentVisaInfo : dependentVisaInfo} />
+      )}
+      {(activeSection === 'materials' || activeSection === 'checklist') && <DocumentChecklist documents={documents} />}
+
+      <div className="flex justify-center gap-3 pb-2">
+        <button className="h-9 rounded border border-blue-200 bg-blue-50 px-6 text-sm font-bold text-brand-blue">Edit Directly</button>
+        <button className="h-9 rounded border border-red-200 bg-red-50 px-6 text-sm font-bold text-red-500">Add Return Remarks</button>
+      </div>
+    </div>
+  );
+};
+
+const RemarkAttachmentView = ({ request }: { request: AssessmentRequest }) => {
+  const documents = request.documents.length > 0 ? request.documents : fallbackDocuments;
+
+  return (
+    <div className="grid grid-cols-1 gap-6 py-7 lg:grid-cols-2">
+      <div>
+        <h3 className="mb-3 text-sm font-bold text-slate-700">Remark</h3>
+        <div className="min-h-32 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          {request.remark || 'Client noted that the candidate may relocate with a dependent applicant. SD should confirm whether both visa paths can be handled in the same onboarding flow.'}
+        </div>
+      </div>
+      <div>
+        <h3 className="mb-3 text-sm font-bold text-slate-700">Attachments</h3>
+        <div className="space-y-3">
+          {documents.slice(0, 3).map((doc) => (
+            <div key={doc.id} className="flex items-center justify-between rounded border border-slate-200 px-4 py-3 text-sm">
+              <span className="flex items-center gap-2 font-medium text-slate-700">
+                <Paperclip size={15} />
+                {doc.name}
+              </span>
+              <button className="text-brand-blue"><Download size={16} /></button>
             </div>
           ))}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
-          <div className="flex gap-9 border-b border-slate-200">
-            <TabButton active={activeTab === 'visa'} onClick={() => setActiveTab('visa')}>Visa Requirements</TabButton>
-            <TabButton active={activeTab === 'remarks'} onClick={() => setActiveTab('remarks')}>Remark & Attachments</TabButton>
-          </div>
-
-          {activeTab === 'visa' ? (
-            <div className="pt-8">
-              <div className="grid grid-cols-2 gap-24 text-sm">
-                <ReadOnlyField label="Is a visa application required?" value={request.visaRequired === false ? 'NO' : 'YES'} />
-                <ReadOnlyField label="Visa Application Type" value="Employment + Dependent" />
-              </div>
-
-              <div className="mt-7 flex gap-10 border-b border-slate-200">
-                {(['Employment', 'Dependent'] as VisaScope[]).map((scope) => (
-                  <div key={scope}>
-                    <TabButton
-                      active={activeScope === scope}
-                      onClick={() => {
-                        setActiveScope(scope);
-                        setActiveSection('person');
-                      }}
-                    >
-                      {scope} Visa
-                    </TabButton>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 flex gap-10 border-b border-slate-200">
-                <TabButton active={activeSection === 'person'} onClick={() => setActiveSection('person')}>
-                  {activeScope === 'Employment' ? 'Candidate Info' : 'Dependent Info'}
-                </TabButton>
-                <TabButton active={activeSection === 'visaInfo'} onClick={() => setActiveSection('visaInfo')}>Visa Info</TabButton>
-                <TabButton active={activeSection === 'materials'} onClick={() => setActiveSection('materials')}>
-                  <span className="inline-flex items-center gap-2">
-                    <FileText size={15} />
-                    Evaluation Materials
-                  </span>
-                </TabButton>
-              </div>
-
-              {activeSection === 'person' && <ReadOnlyGrid rows={personRows} />}
-              {activeSection === 'visaInfo' && (
-                <ReadOnlyGrid rows={activeScope === 'Employment' ? employmentVisaInfo : dependentVisaInfo} />
-              )}
-              {activeSection === 'materials' && <DocumentChecklist documents={documents} />}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 py-7 lg:grid-cols-2">
-              <div>
-                <h3 className="mb-3 text-sm font-bold text-slate-700">Remark</h3>
-                <div className="min-h-32 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  {request.remark || 'Client noted that the candidate may relocate with a dependent applicant. SD should confirm whether both visa paths can be handled in the same onboarding flow.'}
-                </div>
-              </div>
-              <div>
-                <h3 className="mb-3 text-sm font-bold text-slate-700">Attachments</h3>
-                <div className="space-y-3">
-                  {documents.slice(0, 3).map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded border border-slate-200 px-4 py-3 text-sm">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <Paperclip size={15} />
-                        {doc.name}
-                      </span>
-                      <button className="text-brand-blue"><Download size={16} /></button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
-          <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
-          <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
-          <button onClick={onNext} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Next</button>
         </div>
       </div>
     </div>
   );
+};
+
+const getTimeline = (request: AssessmentRequest): TimelineItem[] => {
+  const activeActor = request.pendingAssignee || '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang';
+  const base: TimelineItem[] = [
+    {
+      id: 'created',
+      date: '2026-05-14 17:08:13',
+      actor: '[BIPO Service Delivery] SD-Jelena Zhang',
+      action: 'Submit Request',
+      state: 'done',
+      meta: ['Completion Date: 2026-05-14 17:08:18'],
+    },
+  ];
+
+  return [
+    {
+      id: 'current',
+      date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      actor: activeActor,
+      action: request.currentTask,
+      state: 'active',
+    },
+    ...(request.completedRecords || []).map((r) => ({ ...r, state: 'done' as const })),
+    ...base,
+  ];
 };
 
 const DateFilter = ({ label }: { label: string }) => (
@@ -532,22 +748,53 @@ const DateFilter = ({ label }: { label: string }) => (
   </button>
 );
 
-const ProgressStatus = ({ status, step }: { status: string; step: string }) => {
-  const isProcessing = status === 'Processing';
-  const isPending = status === 'Pending';
+const ProgressStatus = ({ request }: { request: AssessmentRequest }) => {
+  const isProcessing = request.status === Status.Processing;
+  const isPending = request.status === Status.Pending;
+  const step = isProcessing ? '2/4' : 'N/A';
 
   return (
-    <div className="w-36 space-y-2">
+    <div className="group relative w-36 space-y-2">
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full rounded-full ${isPending ? 'w-full bg-amber-100' : isProcessing ? 'w-1/2 bg-brand-blue' : 'w-0 bg-slate-200'}`} />
       </div>
       <div className="flex justify-between text-sm text-slate-700">
-        <span>{status}</span>
+        <span>{request.status}</span>
         <span>{step}</span>
+      </div>
+      <div className="pointer-events-none absolute right-0 top-full z-30 mt-2 hidden w-[520px] rounded border border-slate-200 bg-white p-4 text-sm shadow-xl group-hover:block">
+        <div className="mb-3 border-b border-slate-200 pb-3 text-slate-600">
+          Request Status: <span className="font-medium text-amber-500">{request.status} ( {step} )</span>
+        </div>
+        <p className="mb-2 text-slate-600">
+          Pending Task Name: <span className="font-medium text-slate-700">{request.currentTask}</span>
+        </p>
+        <p className="text-slate-600">
+          Pending Task Assignee: <span className="font-medium text-slate-700">{request.pendingAssignee || 'N/A'}</span>
+        </p>
       </div>
     </div>
   );
 };
+
+const ModalHeader = ({ title, onClose }: { title: string; onClose: () => void }) => (
+  <div className="flex items-center justify-between px-5 py-5">
+    <div className="flex items-center gap-2">
+      <h2 className="text-lg font-medium text-slate-800">{title}</h2>
+      <span className="text-xs text-brand-blue">Request Info</span>
+    </div>
+    <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
+      <X size={18} />
+    </button>
+  </div>
+);
+
+const StepCell = ({ active, children }: { active?: boolean; children: ReactNode }) => (
+  <div className={`relative flex h-10 items-center gap-3 px-5 ${active ? 'text-orange-500' : ''}`}>
+    <span className={`h-4 w-4 rounded-full border-2 ${active ? 'border-orange-400' : 'border-slate-300'}`} />
+    {children}
+  </div>
+);
 
 const PanelTitle = ({ children }: { children: string }) => (
   <div className="bg-brand-blue px-5 py-4 text-sm font-bold text-white">{children}</div>
@@ -582,7 +829,7 @@ const TabButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={`relative pb-3 text-sm font-bold ${active ? 'text-brand-blue' : 'text-slate-600'}`}
+    className={`relative whitespace-nowrap pb-3 text-sm font-bold ${active ? 'text-brand-blue' : 'text-slate-600'}`}
   >
     {children}
     {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-blue" />}
@@ -592,16 +839,16 @@ const TabButton = ({
 const ReadOnlyField = ({ label, value }: { label: string; value: string }) => (
   <div>
     <p className="mb-4 text-sm text-slate-500">{label}</p>
-    <p className="text-sm font-medium text-slate-900">{value}</p>
+    <p className="text-sm font-medium text-slate-900">{value || '-'}</p>
   </div>
 );
 
 const ReadOnlyGrid = ({ rows }: { rows: [string, string][] }) => (
   <div className="grid grid-cols-1 gap-x-24 gap-y-7 py-8 md:grid-cols-2">
     {rows.map(([label, value]) => (
-      <div key={label}>
+      <React.Fragment key={label}>
         <ReadOnlyField label={label} value={value || '-'} />
-      </div>
+      </React.Fragment>
     ))}
   </div>
 );
@@ -637,6 +884,12 @@ const DocumentChecklist = ({ documents }: { documents: DocumentItem[] }) => (
     </table>
   </div>
 );
+
+const formatVisaApplicationType = (type?: AssessmentRequest['visaApplyType']) => {
+  if (type === 'Employment') return 'Employment Visa';
+  if (type === 'Dependant') return 'Dependent Visa';
+  return 'Employment + Dependent';
+};
 
 const fallbackDocuments: DocumentItem[] = [
   { id: 'fallback-1', name: 'Passport Bio Page', isRequired: true, status: 'Uploaded', lastUpdated: '2026-05-14' },
