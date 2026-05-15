@@ -1,0 +1,110 @@
+import { 
+  UserPlus, 
+  FileText, 
+  FileSearch, 
+  Building2, 
+  XCircle, 
+  LayoutDashboard 
+} from 'lucide-react';
+import { Status, AssessmentRequest, DocumentItem } from './types.ts';
+
+export const MODULES = [
+  { id: 'onboarding', name: 'Onboarding', icon: UserPlus, active: true },
+  { id: 'personnel', name: 'Personnel Status Change', icon: FileText },
+  { id: 'renew', name: 'Work Visa Renew', icon: FileSearch },
+  { id: 'contract', name: 'Contract Renewal', icon: Building2 },
+  { id: 'offboarding-res', name: 'Offboarding-Resignation', icon: XCircle },
+  { id: 'offboarding-term', name: 'Offboarding-Termination', icon: XCircle },
+  { id: 'offboarding', name: 'Offboarding', icon: XCircle },
+  { id: 'payroll', name: 'Ad-hoc Payroll', icon: LayoutDashboard },
+];
+
+export const PROJECTS = [
+  { id: 'p1', region: 'Asia', client: 'Stüssy', code: 'stussy_AS_3', candidates: 4, employees: 0, location: 'Singapore' },
+  { id: 'p2', region: 'Asia', client: 'Zhappy', code: 'zhappy_AS_1', candidates: 56, employees: 1, location: 'Singapore' },
+  { id: 'p3', region: 'Asia', client: 'Zhappy', code: 'zhappy_AS_2', candidates: 10, employees: 5, location: 'Korea' },
+  { id: 'p4', region: 'China Mainland', client: 'Stüssy', code: 'stussy_CN_4', candidates: 1, employees: 1, location: 'China' },
+  { id: 'p5', region: 'China Mainland', client: 'Zhappy', code: 'zhappy_CN_2', candidates: 1, employees: 1, location: 'China' },
+  { id: 'p6', region: 'Singapore', client: 'Zhappy', code: 'zhappy_SG_1', candidates: 15, employees: 4, location: 'Singapore' },
+];
+
+export const LOCATION_DOCS: Record<string, Omit<DocumentItem, 'status'>[]> = {
+  'Singapore': [
+    { id: 'sg-1', name: 'Passport Bio Page', isRequired: true },
+    { id: 'sg-2', name: 'Resume / CV', isRequired: true },
+    { id: 'sg-3', name: 'Degree Certificate', isRequired: true },
+    { id: 'sg-4', name: 'Existing Visa / Residence Permit', isRequired: false },
+  ],
+  'Hong Kong': [
+    { id: 'hk-1', name: 'Identity Card Copy', isRequired: true },
+    { id: 'hk-2', name: 'Proof of Professional Qualification', isRequired: true },
+    { id: 'hk-3', name: 'Employment Visa Application Form', isRequired: true },
+  ],
+  'United Kingdom': [
+    { id: 'uk-1', name: 'Passport Portfolio', isRequired: true },
+    { id: 'uk-2', name: 'CoS Reference Number', isRequired: true },
+    { id: 'uk-3', name: 'English Proficiency Proof', isRequired: true },
+  ]
+};
+
+export const INITIAL_REQUESTS: AssessmentRequest[] = [
+  {
+    id: 'VA-2026-0031',
+    candidateName: 'Amanda Lee',
+    candidateEmail: 'amanda.lee@example.com',
+    workLocation: 'Singapore',
+    nationality: 'China',
+    currentLocation: 'China',
+    jobTitle: 'Product Manager',
+    salary: 'SGD 9,500 / month',
+    degree: 'Bachelor',
+    expectedStartDate: '2026-07-01',
+    visaType: 'EP (Employment Pass)',
+    remark: 'Relocating with spouse.',
+    status: Status.Submitted,
+    client: 'Acme APAC Ltd.',
+    submittedDate: '2026-05-14',
+    documents: [
+      { id: 'sg-1', name: 'Passport Bio Page', isRequired: true, status: 'Uploaded', lastUpdated: '2026-05-14' },
+      { id: 'sg-2', name: 'Resume / CV', isRequired: true, status: 'Uploaded', lastUpdated: '2026-05-14' },
+      { id: 'sg-3', name: 'Degree Certificate', isRequired: true, status: 'Missing' },
+      { id: 'sg-4', name: 'Existing Visa / Residence Permit', isRequired: false, status: 'Not uploaded' },
+    ]
+  },
+  {
+    id: 'VA-2026-0030',
+    candidateName: 'Daniel Wong',
+    candidateEmail: 'daniel.w@techpulse.io',
+    workLocation: 'Hong Kong',
+    nationality: 'Malaysia',
+    currentLocation: 'Malaysia',
+    jobTitle: 'Senior Dev',
+    salary: 'HKD 75,000 / month',
+    degree: 'Master',
+    expectedStartDate: '2026-06-15',
+    visaType: 'GEP',
+    remark: '',
+    status: Status.NeedMoreInformation,
+    client: 'TechPulse Global',
+    submittedDate: '2026-05-10',
+    documents: []
+  },
+  {
+    id: 'VA-2026-0029',
+    candidateName: 'Priya Nair',
+    candidateEmail: 'priya.nair@nexus.com',
+    workLocation: 'Singapore',
+    nationality: 'India',
+    currentLocation: 'India',
+    jobTitle: 'Solutions Architect',
+    salary: 'SGD 12,000 / month',
+    degree: 'Bachelor',
+    expectedStartDate: '2026-08-01',
+    visaType: 'EP',
+    remark: '',
+    status: Status.Approved,
+    client: 'Nexus Systems',
+    submittedDate: '2026-05-08',
+    documents: []
+  }
+];
