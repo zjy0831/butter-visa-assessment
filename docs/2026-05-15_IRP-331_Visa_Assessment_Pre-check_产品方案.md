@@ -182,7 +182,8 @@ Butter 底层已根据地区预设了各地区签证评估所需材料，因此�
 - SD 开始处理预评估 task 后，request status 仍保持 `pending`，`currentStage = visa_assessment`，`currentTask = Confirm Visa Assessment`。
 - SD 要求客户补充字段或材料时，request status 仍保持 `pending`，`currentStage = client_supplement`，`currentTask = Supplement Assessment Materials`。
 - 客户补充并重新提交后，request status 仍保持 `pending`，`currentStage = visa_assessment`，`currentTask = Confirm Visa Assessment`。
-- SD 评估通过后，request status 仍保持 `pending`，`currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`。
+- SD 点击 `Assessment Approved` 后，需在二次确认弹窗中确认评估通过，可填写给 Client 的备注；确认后 request status 仍保持 `pending`，`currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`。
+- SD 点击 `Assessment Not Approved` 后，需在二次确认弹窗中填写评估不通过原因；确认后 request status 为 `closed`，`currentStage = closed`，`currentTask = Close Request`，并通知 Client。
 - 客户或候选人补全并提交 onboarding 信息后，request status 仍保持 `pending`，`currentStage = confirm_order`，`currentTask = Confirm Order`。
 - SD 在 `Confirm Order` 阶段发现候选人信息有问题时，可以 Return to Client；request status 仍保持 `pending`，`currentStage = submit_order`，`currentTask = Submit Order`。
 - 只有 SD 完成正式 `Confirm Order` 并进入 `Open service order` 后，request status 才从 `pending` 变为 `processing`。
@@ -195,15 +196,22 @@ SD 在 request 详情页的预评估 task 中完成以下动作：
 - 查看客户提交的候选人基础信息、签证预评估字段、评估材料、备注和附件。
 - 要求客户补充字段或材料，并填写补充原因。
 - 给出评估结论：
-  - `Assessment Approved`：符合签证办理资格，可进入正式 onboarding。
+  - `Assessment Approved`：符合签证办理资格，可进入正式 onboarding；点击后需二次确认，可填写给 Client 的备注。
+  - `Assessment Not Approved`：不符合签证办理资格或无法继续推进；点击后需二次确认，必须填写不通过原因，确认后取消 / 关闭 request 并通知 Client。
   - `Return to Client`：当前资料不足，无法判断。
-  - `Close Request`：不符合签证办理资格、不在服务范围内或无法继续推进。
 
 评估结论应记录：
 
 - 评估结果
 - 结果原因 / 备注
 - 评估确认人和确认时间
+
+二次确认弹窗规则：
+
+| 动作 | 弹窗 | Remark 必填 | Confirm 后处理 |
+| --- | --- | --- | --- |
+| `Assessment Not Approved` | 告知 SD 需填写评估不通过原因，确认后将取消 / 关闭订单并通知客户 | 是 | `requestStatus = closed`，`currentStage = closed`，`currentTask = Close Request` |
+| `Assessment Approved` | 告知 SD 可添加备注，确认后 request 将流转给客户补充更多候选人入职信息 | 否 | `requestStatus = pending`，`currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info` |
 
 ### 3.5 评估通过后进入 onboarding 信息补全与接单
 
@@ -213,6 +221,7 @@ SD 在 request 详情页的预评估 task 中完成以下动作：
 
 - 将评估阶段已填写字段映射到同一个 request 的 onboarding candidate 信息中。
 - 将评估阶段根据地区配置上传的附件关联到同一个 request 的文档区，并保留来源标记。
+- 将 SD 在 `Assessment Approved` 二次确认弹窗中填写的备注带到 Client 的 `Complete Onboarding Info` 页面顶部，以 `Modification Remarks` 样式展示。
 - 客户或候选人继续补全剩余 onboarding 必填信息。
 - 客户或候选人补全并提交 onboarding 信息后，request 进入 `Confirm Order`，等待 SD 正式接单。
 - SD 在 `Confirm Order` 阶段复核完整下单信息、评估结论、签证节奏、合同/offer 路径和服务承接责任。
@@ -223,6 +232,7 @@ SD 在 request 详情页的预评估 task 中完成以下动作：
 - 如果 onboarding 信息中对应字段为空，则自动带入评估字段。
 - 如果客户在后续 onboarding 信息补全中修改已带入字段，系统保留最新值，并在 Confirm Order 阶段提示 SD 复核差异。
 - 评估结果和评估备注不应被客户覆盖，作为 SD 判断记录保留。
+- SD 评估通过备注只读展示给 Client / Candidate，用于指导信息补全，不作为客户可编辑字段。
 
 ### 3.6 批量候选人提交与拆分
 
@@ -270,8 +280,8 @@ Within the Issuing Country/Region? = out of country / in country
 | 客户提交不走预评估的 request       | SD          | 提醒 SD 进入 Confirm Order 接单确认        |
 | SD 要求补充信息                | Client      | 告知需补充字段/材料和原因                     |
 | 客户补充后重新提交                | SD          | 提醒 SD 继续评估                        |
-| 预评估不通过并关闭 request        | Client      | 告知关闭原因和后续建议                       |
-| 预评估通过并进入 onboarding 信息补全 | Client / SD | 告知该 request 可继续补全正式 onboarding 信息 |
+| 预评估不通过并关闭 request        | Client      | 告知评估不通过原因，并说明 request 已取消 / 关闭      |
+| 预评估通过并进入 onboarding 信息补全 | Client / SD | 告知该 request 可继续补全正式 onboarding 信息，并展示 SD 备注 |
 | SD 完成 Confirm Order      | Client / SD | 告知 request 已正式接单并进入服务执行           |
 
 Client 可查看自己提交的 request 状态、预评估材料和预评估结果；SD 可查看其权限范围内的 request；LS 是否可见取决于预评估 task 是否分配给 LS 或当地角色。
@@ -286,9 +296,9 @@ Client 可查看自己提交的 request 状态、预评估材料和预评估结�
 | `Visa Application Type`           | Client             | 已选择候选人添加模式                            | 判断是否需要 visa application；若需要 visa，则判断是否需要 pre-assessment                          | `pending`                           |
 | `Provide Candidate Information`   | Client             | 不需要 visa，或需要 visa 但不需要预评估             | 填写正式 onboarding candidate 信息，进入 `Confirm Order`                                      | `pending`                           |
 | `Visa Assessment Pre-check`       | Client             | 需要 visa 且需要预评估                          | 填写 `Candidate Info`、`Visa Requirements`、评估材料和备注附件                                  | `pending`                           |
-| `Confirm Visa Assessment`         | SD / LS            | Client 提交预评估信息                         | Approved / Return to Client / Close Request                                            | `pending`，Close Request 时转 `closed` |
+| `Confirm Visa Assessment`         | SD / LS            | Client 提交预评估信息                         | Assessment Approved / Assessment Not Approved / Return to Client                      | `pending`，Assessment Not Approved 时转 `closed` |
 | `Supplement Assessment Materials` | Client             | SD 要求补充                                | Client 补充字段或材料后重新提交                                                                    | `pending`                           |
-| `Complete Onboarding Info`        | Client / Candidate | 预评估通过                                  | 补全并提交剩余 onboarding 字段和材料，进入 `Confirm Order`                                            | `pending`                           |
+| `Complete Onboarding Info`        | Client / Candidate | 预评估通过                                  | 页面顶部展示 SD approval remark；补全并提交剩余 onboarding 字段和材料，进入 `Confirm Order`             | `pending`                           |
 | `Confirm Order`                   | SD                 | Client / Candidate 已提交正式 onboarding 信息 | Return to Client / Confirm Order / Cancel or Close；Return to Client 后回到 `Submit Order` | `pending`，确认接单后准备转 `processing`     |
 | `Submit Order`                    | Client             | SD 从 Confirm Order 打回                  | 修正信息后重新提交正式接单确认                                                                        | `pending`                           |
 | `Open Service Order`              | System / SD        | SD 完成 Confirm Order                    | 创建或打开后续服务执行节点                                                                          | `processing`                        |
@@ -342,7 +352,7 @@ flowchart TD
     S --> T{SD 评估结果}
     T -->|Return to Client| U[Supplement Assessment Materials\ncurrentStage: client_supplement]
     U --> S
-    T -->|Close Request| V[request status: closed]
+    T -->|Assessment Not Approved\n填写不通过原因| V[request status: closed]
     T -->|Assessment Approved| W[Complete Onboarding Info\ncurrentStage: onboarding_info_completion]
     W --> R
 
@@ -365,8 +375,8 @@ flowchart TD
 | 客户确认不需要办理 visa | 不展示 visa type 和 pre-assessment；进入 `Provide Candidate Information`，提交后进入 `Confirm Order` |
 | 客户确认需要 visa 但不需要预评估 | 填写正式 onboarding candidate 信息，提交后进入 `Confirm Order`；SD 在 `Confirm Visa Type` 中记录线下沟通并确认正式 visa type |
 | 客户确认需要 visa 且需要预评估 | 进入 Visa Assessment Pre-check，只填写评估字段，并按地区预设材料清单上传评估材料 |
-| SD 评估通过 | request status 仍为 `pending`，`currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`，系统在同一个候选人的 request 中带入评估字段 |
-| 后续 onboarding 继续补全信息 | 客户/候选人只补充剩余 onboarding 必填信息，不重复填写已带入字段；补全并提交后进入 `currentStage = confirm_order`，`currentTask = Confirm Order` |
+| SD 评估通过 | SD 在二次确认弹窗中确认通过，可填写备注；request status 仍为 `pending`，`currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info` |
+| 后续 onboarding 继续补全信息 | 客户/候选人在页面顶部看到 SD 的 `Modification Remarks`，并只补充剩余 onboarding 必填信息；补全并提交后进入 `currentStage = confirm_order`，`currentTask = Confirm Order` |
 | SD 正式 Confirm Order | SD 复核预评估结论、完整 onboarding 信息和服务路径，接单后 request status 变为 `processing` |
 
 ### 5.2 异常与边界场景
@@ -374,7 +384,7 @@ flowchart TD
 | 场景 | 方案处理逻辑 |
 | --- | --- |
 | 评估字段或材料不足 | SD 退回客户补充，request status 仍为 `pending`，`currentStage = client_supplement`，`currentTask = Supplement Assessment Materials` |
-| 候选人不符合签证办理资格 | SD 填写关闭原因，request status 变为 `closed`，`currentStage = closed`，`currentTask = Close Request` |
+| 候选人不符合签证办理资格 | SD 点击 `Assessment Not Approved`，在二次确认弹窗填写不通过原因；request status 变为 `closed`，`currentStage = closed`，`currentTask = Close Request`，并通知 Client |
 | 客户评估阶段选择错误 Project | SD 可要求客户修改并进入 `currentStage = client_supplement`；如不在服务范围，则 Close Request |
 | SD 接单时发现 onboarding 信息有误 | SD 在 `Confirm Order` 阶段 Return to Client，request status 仍为 `pending`，`currentStage = submit_order`，`currentTask = Submit Order` |
 | 评估通过后客户修改关键字段 | 后续 onboarding 信息允许修改，但需保留评估字段来源和差异提示，SD 接单时复核 |
@@ -404,7 +414,7 @@ flowchart TD
 - 需要 visa 且需要线上预评估的 request，先进入签证预评估阶段。
 - 批量模式提交后按候选人拆分为多个 request，不保留 `batchSubmissionId`。
 - 评估阶段不启动正式签证申请，不进入付款、申请进度、签证结果上传等节点。
-- 评估通过后，同一个 request 中的 onboarding 信息补全会带入评估字段和评估结论，降低 Confirm Order 阶段重复判断成本。
+- 评估通过后，同一个 request 中的 onboarding 信息补全会带入评估字段、评估结论和 SD approval remark，降低 Client 补全信息和 Confirm Order 阶段重复判断成本。
 - 顶层 request status 在正式 `Confirm Order / Open service order` 前保持 `pending`；签证预评估和补全进度通过 `currentStage` 和 `currentTask` 表达。
 
 ***

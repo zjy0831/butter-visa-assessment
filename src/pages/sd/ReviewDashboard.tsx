@@ -126,31 +126,6 @@ export const ReviewDashboard = ({ requests, onUpdate, role = 'sd' }: ReviewDashb
           role={role}
           onBack={backToList}
           onProcess={handleProcess}
-          onApproveAssessment={() => {
-            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            onUpdate(selectedRequest.id, Status.Pending, {
-              currentStage: 'onboarding_info_completion',
-              currentTask: 'Complete Onboarding Info',
-              pendingAssignee: '[Client Contact] Client-Jelena',
-              returnRemarks: undefined,
-              completedRecords: [
-                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Approved', `Completion Date: ${ts}`] },
-                ...(selectedRequest.completedRecords || []),
-              ],
-            });
-          }}
-          onCloseRequest={() => {
-            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            onUpdate(selectedRequest.id, Status.Closed, {
-              currentStage: 'closed',
-              currentTask: 'Close Request',
-              pendingAssignee: 'N/A',
-              completedRecords: [
-                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Close Request', `Completion Date: ${ts}`] },
-                ...(selectedRequest.completedRecords || []),
-              ],
-            });
-          }}
         />
       )}
 
@@ -172,15 +147,47 @@ export const ReviewDashboard = ({ requests, onUpdate, role = 'sd' }: ReviewDashb
             });
             setIsAssessmentOpen(false);
           }}
-          onConfirm={() => {
+          onApprove={(remarks) => {
             const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
             onUpdate(selectedRequest.id, Status.Pending, {
               currentStage: 'onboarding_info_completion',
               currentTask: 'Complete Onboarding Info',
               pendingAssignee: '[Client Contact] Client-Jelena',
               returnRemarks: undefined,
+              approvalRemarks: remarks.trim() || undefined,
               completedRecords: [
-                { id: `r-${Date.now()}`, date: ts, actor: selectedRequest.pendingAssignee || '', action: 'Confirm Visa Assessment', meta: ['User: Approved', `Completion Date: ${ts}`] },
+                {
+                  id: `r-${Date.now()}`,
+                  date: ts,
+                  actor: selectedRequest.pendingAssignee || '',
+                  action: 'Confirm Visa Assessment',
+                  meta: [
+                    'User: Assessment Approved',
+                    ...(remarks.trim() ? [`Remarks: ${remarks.trim()}`] : []),
+                    `Completion Date: ${ts}`,
+                  ],
+                },
+                ...(selectedRequest.completedRecords || []),
+              ],
+            });
+            setIsAssessmentOpen(false);
+          }}
+          onReject={(remarks) => {
+            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            onUpdate(selectedRequest.id, Status.Closed, {
+              currentStage: 'closed',
+              currentTask: 'Close Request',
+              pendingAssignee: 'N/A',
+              assessmentRejectRemarks: remarks.trim(),
+              returnRemarks: undefined,
+              completedRecords: [
+                {
+                  id: `r-${Date.now()}`,
+                  date: ts,
+                  actor: selectedRequest.pendingAssignee || '',
+                  action: 'Confirm Visa Assessment',
+                  meta: ['User: Assessment Not Approved', `Reason: ${remarks.trim()}`, `Completion Date: ${ts}`],
+                },
                 ...(selectedRequest.completedRecords || []),
               ],
             });
@@ -349,21 +356,16 @@ const RequestDetail = ({
   role = 'sd',
   onBack,
   onProcess,
-  onApproveAssessment,
-  onCloseRequest,
 }: {
   request: AssessmentRequest;
   role?: 'sd' | 'client';
   onBack: () => void;
   onProcess: () => void;
-  onApproveAssessment: () => void;
-  onCloseRequest: () => void;
 }) => {
   const records = getTimeline(request);
   const assigneeTag = role === 'sd' ? '[BIPO Service Delivery]' : '[Client Contact]';
   const isCurrentUserAssignee = !!(request.pendingAssignee?.includes(assigneeTag));
   const canProcess = isCurrentUserAssignee && request.status === Status.Pending && request.currentTask !== 'Close Request';
-  const canApproveAssessment = request.currentTask === 'Confirm Visa Assessment';
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
@@ -462,18 +464,8 @@ const RequestDetail = ({
 
       <div className="flex justify-end gap-3 border-t border-slate-200 bg-white px-3 py-3">
         <button className="h-9 rounded border border-slate-200 px-7 text-sm font-bold">Export Request Info</button>
-        {canApproveAssessment && (
-          <>
-            <button onClick={onApproveAssessment} className="h-9 rounded bg-brand-blue px-7 text-sm font-bold text-white">Approved</button>
-            <button onClick={onCloseRequest} className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Close Request</button>
-          </>
-        )}
-        {!canApproveAssessment && (
-          <>
-            <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Revoke Order</button>
-            <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Cancel Order</button>
-          </>
-        )}
+        <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Revoke Order</button>
+        <button className="h-9 rounded border border-red-200 bg-red-50 px-7 text-sm font-bold text-red-500">Cancel Order</button>
       </div>
     </div>
   );
@@ -483,14 +475,17 @@ const AssessmentModal = ({
   request,
   onClose,
   onReturn,
-  onConfirm,
+  onApprove,
+  onReject,
 }: {
   request: AssessmentRequest;
   onClose: () => void;
   onReturn: () => void;
-  onConfirm: () => void;
+  onApprove: (remarks: string) => void;
+  onReject: (remarks: string) => void;
 }) => {
   const [activeTab, setActiveTab] = useState<AssessmentTab>('candidate');
+  const [decision, setDecision] = useState<'approve' | 'reject' | null>(null);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
@@ -513,14 +508,105 @@ const AssessmentModal = ({
           {activeTab === 'remarks' && <RemarkAttachmentView request={request} />}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
+        <div className="grid grid-cols-4 gap-3 bg-slate-50 px-4 py-3">
           <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
           <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
           <button
-            onClick={onConfirm}
+            onClick={() => setDecision('reject')}
+            className="h-10 rounded border border-red-200 bg-red-50 text-sm font-bold text-red-500"
+          >
+            Assessment Not Approved
+          </button>
+          <button
+            onClick={() => setDecision('approve')}
             className="h-10 rounded bg-brand-blue text-sm font-bold text-white"
           >
             Assessment Approved
+          </button>
+        </div>
+      </div>
+      {decision && (
+        <AssessmentDecisionDialog
+          decision={decision}
+          onClose={() => setDecision(null)}
+          onConfirm={(remarks) => {
+            if (decision === 'approve') {
+              onApprove(remarks);
+            } else {
+              onReject(remarks);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const AssessmentDecisionDialog = ({
+  decision,
+  onClose,
+  onConfirm,
+}: {
+  decision: 'approve' | 'reject';
+  onClose: () => void;
+  onConfirm: (remarks: string) => void;
+}) => {
+  const [remarks, setRemarks] = useState('');
+  const [touched, setTouched] = useState(false);
+  const isReject = decision === 'reject';
+  const isMissingRequiredRemark = isReject && remarks.trim().length === 0;
+  const title = isReject ? 'Confirmation to Reject Visa Assessment' : 'Confirmation to Approve Visa Assessment';
+  const description = isReject
+    ? 'Please enter the reason why the visa assessment is not approved. After confirmation, this request will be cancelled and the client will be notified.'
+    : 'You can add remarks for the client below. After confirmation, this request will be routed to the client to complete additional onboarding candidate information.';
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/35 px-10">
+      <div className="w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-2xl">
+        <div className="flex items-start justify-between px-6 pt-6">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-normal text-slate-800">{title}</h2>
+            <p className="mt-5 text-base leading-7 text-slate-500">{description}</p>
+          </div>
+          <button onClick={onClose} className="mt-1 text-slate-400 hover:text-slate-700">
+            <X size={22} />
+          </button>
+        </div>
+
+        <div className="px-6 py-6">
+          <label className="mb-3 block text-base font-bold text-slate-900">
+            {isReject && <span className="mr-2 text-red-500">*</span>}Remarks:
+          </label>
+          <textarea
+            value={remarks}
+            onBlur={() => setTouched(true)}
+            onChange={(event) => setRemarks(event.target.value)}
+            placeholder="Please input remarks"
+            className={`min-h-24 w-full resize-y rounded border bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 ${
+              touched && isMissingRequiredRemark ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-brand-blue'
+            }`}
+          />
+          {touched && isMissingRequiredRemark && (
+            <p className="mt-2 text-sm text-red-500">remark is required</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 bg-slate-50 px-5 py-4">
+          <button onClick={onClose} className="h-11 rounded border border-slate-200 bg-white text-sm font-bold text-slate-900">
+            Close
+          </button>
+          <button
+            onClick={() => {
+              setTouched(true);
+              if (isMissingRequiredRemark) return;
+              onConfirm(remarks);
+            }}
+            disabled={isMissingRequiredRemark}
+            className={`h-11 rounded text-sm font-bold text-white ${
+              isMissingRequiredRemark ? 'cursor-not-allowed bg-slate-300' : 'bg-brand-blue'
+            }`}
+          >
+            Confirm
           </button>
         </div>
       </div>

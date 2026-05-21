@@ -126,10 +126,13 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
     visaRequired: existingRequest?.visaRequired ?? true,
     visaAssessmentRequired: existingRequest?.visaAssessmentRequired ?? true,
     visaApplyType: existingRequest?.visaApplyType || 'Both',
+    approvalRemarks: existingRequest?.approvalRemarks,
+    assessmentRejectRemarks: existingRequest?.assessmentRejectRemarks,
   });
 
   const requiresVisaAssessment = draft.visaRequired === true && draft.visaAssessmentRequired === true;
   const isBatchMode = candidateAddMode === 'batch';
+  const approvalRemarkText = existingRequest?.approvalRemarks || draft.approvalRemarks;
 
   useEffect(() => {
     // If only Dependant is selected, set it as active
@@ -373,7 +376,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
         <div className="flex h-16 shrink-0 items-center justify-between px-6">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-medium text-slate-900">
-              {mode === 'supplement' ? 'Supplement Assessment Materials' : mode === 'complete' ? 'Submit order' : mode === 'submit' ? 'Submit Order' : 'Submit Request'}
+              {mode === 'supplement' ? 'Supplement Assessment Materials' : mode === 'complete' ? 'Complete Onboarding Info' : mode === 'submit' ? 'Submit Order' : 'Submit Request'}
             </h2>
             {mode === 'complete' && <span className="text-xs font-medium text-brand-blue">Request Info</span>}
           </div>
@@ -559,14 +562,14 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                             {draft.visaRequired && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                           </span>
                           <input type="radio" className="hidden" checked={draft.visaRequired === true} onChange={() => setDraft(p => ({ ...p, visaRequired: true, visaAssessmentRequired: p.visaAssessmentRequired ?? true }))} />
-                          <span className={`text-sm font-medium ${draft.visaRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes</span>
+                          <span className={`text-sm font-medium ${draft.visaRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes, candidate needs visa support</span>
                         </label>
                         <label className="flex cursor-pointer items-center gap-2">
                           <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaRequired === false ? 'border-brand-blue' : 'border-slate-300'}`}>
                             {draft.visaRequired === false && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                           </span>
                           <input type="radio" className="hidden" checked={draft.visaRequired === false} onChange={() => setDraft(p => ({ ...p, visaRequired: false, visaAssessmentRequired: false }))} />
-                          <span className={`text-sm font-medium ${draft.visaRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No</span>
+                          <span className={`text-sm font-medium ${draft.visaRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No, candidate is local or already authorized</span>
                         </label>
                       </div>
                     </div>
@@ -608,26 +611,39 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                               {draft.visaAssessmentRequired && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                             </span>
                             <input type="radio" className="hidden" checked={draft.visaAssessmentRequired === true} onChange={() => setDraft(p => ({ ...p, visaAssessmentRequired: true }))} />
-                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes</span>
+                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes, need online assessment</span>
                           </label>
                           <label className="flex cursor-pointer items-center gap-2">
                             <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaAssessmentRequired === false ? 'border-brand-blue' : 'border-slate-300'}`}>
                               {draft.visaAssessmentRequired === false && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                             </span>
                             <input type="radio" className="hidden" checked={draft.visaAssessmentRequired === false} onChange={() => setDraft(p => ({ ...p, visaAssessmentRequired: false }))} />
-                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No</span>
+                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No, already assessed offline</span>
                           </label>
                         </div>
                       </div>
                     )}
                   </div>
-                  <CollectStepActions className="mt-auto" onContinue={goForwardFromCollectStep} />
+                  {draft.visaRequired && (
+                    <CollectStepActions className="mt-auto" onContinue={goForwardFromCollectStep} />
+                  )}
                 </div>
               </div>
             ) : (
             <div className={`flex flex-col flex-1 overflow-y-auto ${(mode === 'complete' || !requiresVisaAssessment) ? 'bg-white px-5 pt-4' : 'p-5'}`}>
               <div className={`${(mode === 'complete' || !requiresVisaAssessment) ? 'max-w-none pb-6' : 'flex flex-col flex-1 w-full rounded-2xl bg-slate-50 p-10'}`}>
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                    {mode === 'complete' && approvalRemarkText && (
+                      <div className="rounded-lg border border-amber-100 bg-amber-50/55 px-4 py-4">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-700">
+                          <ShieldCheck size={16} />
+                          <span>Visa Assessment Remark</span>
+                        </div>
+                        <div className="rounded bg-amber-50/35 px-8 py-1 text-sm leading-7 text-slate-900">
+                          {approvalRemarkText}
+                        </div>
+                      </div>
+                    )}
                     {activeSection === 'remarks' ? (
                       <div className="grid grid-cols-1 gap-8 py-6 md:grid-cols-2">
                         <div className="space-y-3">
@@ -925,6 +941,11 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               </button>
               <button
                 onClick={() => {
+                  if (subStep === 'type' && !requiresVisaAssessment) {
+                    setSubStep('info');
+                    setActiveSection('candidate');
+                    return;
+                  }
                   if (activeSection !== 'remarks') {
                     setActiveSection('remarks');
                     return;
@@ -970,11 +991,6 @@ const CandidateCreationStep = ({
     <div className="h-full min-h-[660px]">
       <div className="mb-7 flex items-center justify-between">
         <h3 className="text-xl font-bold text-slate-900">Create New Candidate</h3>
-        <div className="text-sm font-bold">
-          <button className="text-brand-blue">Import</button>
-          <span className="mx-2 font-medium text-slate-500">Or</span>
-          <button className="text-brand-blue">Select Existing Candidate</button>
-        </div>
       </div>
 
       <div className="grid min-h-[600px] grid-cols-[270px_minmax(0,1fr)_360px] gap-8">

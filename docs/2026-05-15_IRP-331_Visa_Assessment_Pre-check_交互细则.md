@@ -414,25 +414,129 @@ Other Remarks & Attachment
 
 操作按钮规则：
 
-- 弹窗底部按钮顺序为：`Cancel` / `Return to Client` / `Assessment Approved`。
+- 弹窗底部按钮顺序为：`Cancel` / `Return to Client` / `Assessment Not Approved` / `Assessment Approved`。
 - `Cancel` 关闭弹窗，不改变 request 状态。
 - `Return to Client` 用于退回客户补充预评估信息或材料。
-- `Assessment Approved` 用于确认预评估通过并进入 onboarding 信息补全。
-- `Close Request` 位于 Request Info 详情页右下角，用于关闭不符合资格或无法推进的 request。
+- `Assessment Not Approved` 用于确认预评估不通过；点击后打开二次确认弹窗，要求 SD 填写不通过原因。
+- `Assessment Approved` 用于确认预评估通过；点击后打开二次确认弹窗，允许 SD 添加给 Client 的备注。
 
 按钮可使用中文文案：
 
 ```text
-取消 / 退回客户 / 评估通过
+取消 / 退回客户 / 评估不通过 / 评估通过
 ```
 
 或英文文案：
 
 ```text
-Cancel / Return to Client / Assessment Approved
+Cancel / Return to Client / Assessment Not Approved / Assessment Approved
 ```
 
-## 7. Confirm Order 交互
+### 6.4 Assessment Not Approved 二次确认弹窗
+
+SD 点击 `Assessment Not Approved` 后，打开二次确认弹窗。
+
+弹窗标题：
+
+```text
+Confirmation to Reject Visa Assessment
+```
+
+说明文案：
+
+```text
+Please enter the reason why the visa assessment is not approved. After confirmation, this request will be cancelled and the client will be notified.
+```
+
+字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| Remarks | 必填 | SD 填写评估不通过原因，后续通知 Client，并记录到 request history |
+
+按钮：
+
+```text
+Close / Confirm
+```
+
+交互规则：
+
+- `Remarks` 为空时，`Confirm` disabled，并在校验失败时展示 `remark is required`。
+- 点击 `Close` 关闭二次确认弹窗，不改变 request 状态。
+- 点击 `Confirm` 后，request 不再进入正式 onboarding 接单流程。
+- 系统更新为 `requestStatus = Closed`，`currentStage = closed`，`currentTask = Close Request`。
+- 系统记录 SD 的不通过原因、操作人和操作时间。
+- 系统通知 Client：签证预评估不通过，request 已取消 / 关闭，并展示 SD 填写的原因。
+
+### 6.5 Assessment Approved 二次确认弹窗
+
+SD 点击 `Assessment Approved` 后，打开二次确认弹窗。
+
+弹窗标题：
+
+```text
+Confirmation to Approve Visa Assessment
+```
+
+说明文案：
+
+```text
+You can add remarks for the client below. After confirmation, this request will be routed to the client to complete additional onboarding candidate information.
+```
+
+字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| Remarks | 否 | SD 给 Client 的补充说明，用于指导后续 Complete Onboarding Info |
+
+按钮：
+
+```text
+Close / Confirm
+```
+
+交互规则：
+
+- `Remarks` 可为空；为空时仍允许 `Confirm`。
+- 点击 `Close` 关闭二次确认弹窗，不改变 request 状态。
+- 点击 `Confirm` 后，request 进入 `currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`。
+- 系统记录 SD 的评估通过备注、操作人和操作时间。
+- 系统通知 Client：签证预评估已通过，请继续补充候选人正式入职信息。
+
+## 7. Complete Onboarding Info 交互
+
+当 SD 在 `Assessment Approved` 二次确认弹窗点击 `Confirm` 后，Client / Candidate 进入 `Complete Onboarding Info`。
+
+进入条件：
+
+```text
+requestStatus = Pending
+currentStage = onboarding_info_completion
+currentTask = Complete Onboarding Info
+```
+
+页面顶部展示 SD 在 `Assessment Approved` 二次确认弹窗中填写的备注信息。若 SD 未填写备注，则不展示该区域。
+
+展示样式参考现有 `Modification Remarks` 样式：
+
+- 使用浅暖色背景卡片。
+- 标题为 `Modification Remarks`。
+- 标题下方展示 SD 的 general remark 文本。
+- 如果后续支持字段级备注，可在同一卡片中按字段展示；本期至少展示 SD 在评估通过弹窗中填写的整体 remark。
+
+示例：
+
+```text
+Modification Remarks
+
+[SD assessment approval remark]
+```
+
+页面主体沿用现有 `Provide Candidate Information` / onboarding 信息补全交互，并自动带入预评估阶段已填写的 candidate info、visa requirements 和相关附件。
+
+## 8. Confirm Order 交互
 
 `Confirm Order [EoR - Onboarding]` 整体沿用 Butter 现有实现，但 visa 相关 tab / step 需要根据前序选择展示不同内容。
 
@@ -451,7 +555,7 @@ Confirm Order 中仍按现有方式完成以下动作：
 - SD 可 `Confirm Order`，之后进入 `Open Service Order`，request status 从 `Pending` 变为 `Processing`。
 - Confirm Order 后续 service order、cancel、complete 等交互继续沿用现有逻辑。
 
-### 7.1 不需要办理 visa 的 Confirm Order
+### 8.1 不需要办理 visa 的 Confirm Order
 
 适用条件：
 
@@ -472,7 +576,7 @@ visaRequired = false
 - 不展示 `Confirm Visa Type` step。
 - 不展示 visa type、签证材料清单、线下预评估沟通记录等 visa 相关内容。
 
-### 7.2 需要办理 visa，但不需要预评估的 Confirm Order
+### 8.2 需要办理 visa，但不需要预评估的 Confirm Order
 
 适用条件：
 
@@ -481,7 +585,7 @@ visaRequired = true
 visaAssessmentRequired = false
 ```
 
-#### 7.2.1 Visa Requirements tab
+#### 8.2.1 Visa Requirements tab
 
 `Visa Requirements` tab 只展示 Client 在 `Collect Work Visa Requirements / Visa Application Type` 中的判断结果：
 
@@ -497,7 +601,7 @@ visaAssessmentRequired = false
 - 该场景不展示预评估阶段的 `Visa Requirements` 填写内容，因为 Client 未走线上预评估。
 - SD 后续在 `Confirm Visa Type` step 中确认正式 visa type 和材料要求。
 
-#### 7.2.2 Confirm Visa Type step
+#### 8.2.2 Confirm Visa Type step
 
 `Confirm Visa Type` step 需要展示以下内容：
 
@@ -544,7 +648,7 @@ Dependant Visa
 - SD 可在该 step 中确认正式 visa type 和材料要求。
 - `Employment Visa` 的 `Within the Issuing Country/Region?` 是本场景新增字段，仅在 Employment Visa tab 下展示。
 
-### 7.3 需要办理 visa，且已完成线上预评估后的 Confirm Order
+### 8.3 需要办理 visa，且已完成线上预评估后的 Confirm Order
 
 适用条件：
 
@@ -565,11 +669,11 @@ Confirm Order 中应能查看：
 
 后续 `Confirm Visa Type` 和正式接单动作沿用现有 Confirm Order 交互。
 
-## 8. 完整闭环演示路径
+## 9. 完整闭环演示路径
 
 为了验证改造后的闭环，界面应至少能走通以下路径：
 
-### 8.1 不需要办理 visa
+### 9.1 不需要办理 visa
 
 1. Client 选择 `Service Module`。
 2. Client 选择 `Service Location & Project`。
@@ -584,7 +688,7 @@ Confirm Order 中应能查看：
 11. SD 使用现有 Confirm Order 其他交互完成接单。
 12. 系统执行 `Open Service Order`，request status 变为 `Processing`，`currentStage = service_order`。
 
-### 8.2 需要办理 visa，但不需要预评估
+### 9.2 需要办理 visa，但不需要预评估
 
 1. Client 选择 `Service Module`。
 2. Client 选择 `Service Location & Project`。
@@ -604,7 +708,7 @@ Confirm Order 中应能查看：
 16. SD 使用现有 Confirm Order 其他交互完成接单。
 17. 系统执行 `Open Service Order`，request status 变为 `Processing`，`currentStage = service_order`。
 
-### 8.3 需要办理 visa，且需要预评估
+### 9.3 需要办理 visa，且需要预评估
 
 1. Client 选择 `Service Module`。
 2. Client 选择 `Service Location & Project`。
@@ -622,9 +726,25 @@ Confirm Order 中应能查看：
 14. 如需补充，SD 点击 `Return to Client`，request 进入 `currentStage = client_supplement`，`currentTask = Supplement Assessment Materials`。
 15. Client 补料后重新提交，request 回到 `currentStage = visa_assessment`，`currentTask = Confirm Visa Assessment`。
 16. SD 再次进入预评估并点击 `Assessment Approved`。
-17. request 进入 `currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`。
-18. Client / Candidate 补全并提交 onboarding 信息。
-19. request 进入 `currentStage = confirm_order`，`currentTask = Confirm Order [EoR - Onboarding]`。
-20. SD 点击 `View` 进入 Request Info，并在当前 `Confirm Order` 节点点击 `Process`。
-21. 使用现有 Confirm Order 交互完成接单。
-22. 系统执行 `Open Service Order`，request status 变为 `Processing`，`currentStage = service_order`。
+17. 系统打开 `Confirmation to Approve Visa Assessment` 二次确认弹窗。
+18. SD 可填写给 Client 的备注，并点击 `Confirm`。
+19. request 进入 `currentStage = onboarding_info_completion`，`currentTask = Complete Onboarding Info`。
+20. Client / Candidate 进入 `Complete Onboarding Info` 时，在页面顶部看到 SD 的 `Modification Remarks`。
+21. Client / Candidate 补全并提交 onboarding 信息。
+22. request 进入 `currentStage = confirm_order`，`currentTask = Confirm Order [EoR - Onboarding]`。
+23. SD 点击 `View` 进入 Request Info，并在当前 `Confirm Order` 节点点击 `Process`。
+24. 使用现有 Confirm Order 交互完成接单。
+25. 系统执行 `Open Service Order`，request status 变为 `Processing`，`currentStage = service_order`。
+
+### 9.4 需要办理 visa，且预评估不通过
+
+1. Client 提交需要线上预评估的 request。
+2. Request 列表显示 `Status = Pending`，`Pending Task = Confirm Visa Assessment`，操作为 `View`。
+3. SD 点击 `View` 进入 Request Info。
+4. 当前 records 节点为 `Confirm Visa Assessment [EoR - Onboarding]`，SD 点击 `Process`。
+5. SD 在弹窗中查看 `Candidate Info`、`Visa Requirements`、`Remark & Attachment` 三个 tab。
+6. SD 点击 `Assessment Not Approved`。
+7. 系统打开 `Confirmation to Reject Visa Assessment` 二次确认弹窗。
+8. SD 填写评估不通过原因并点击 `Confirm`。
+9. request 更新为 `Status = Closed`，`currentStage = closed`，`currentTask = Close Request`。
+10. 系统通知 Client：签证预评估不通过，request 已取消 / 关闭，并展示 SD 填写的不通过原因。

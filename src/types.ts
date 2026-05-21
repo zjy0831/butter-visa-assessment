@@ -85,6 +85,8 @@ export interface AssessmentRequest {
   visaAssessmentRequired?: boolean;
   visaApplyType?: 'Employment' | 'Dependant' | 'Both';
   returnRemarks?: string;
+  approvalRemarks?: string;
+  assessmentRejectRemarks?: string;
   pendingAssignee?: string;
   completedRecords?: HistoryRecord[];
 }
