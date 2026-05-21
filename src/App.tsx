@@ -12,8 +12,9 @@ export default function App() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<AssessmentRequest[]>(INITIAL_REQUESTS);
 
-  const handleCreateRequest = (newReq: AssessmentRequest) => {
-    setRequests([newReq, ...requests]);
+  const handleCreateRequest = (newReq: AssessmentRequest | AssessmentRequest[]) => {
+    const newRequests = Array.isArray(newReq) ? newReq : [newReq];
+    setRequests((prev) => [...newRequests, ...prev]);
     navigate('/requests');
   };
 

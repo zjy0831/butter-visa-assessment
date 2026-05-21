@@ -9,7 +9,11 @@ import {
   ShieldCheck,
   Send,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Users,
+  UserPlus,
+  Plus,
+  Download
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -19,9 +23,75 @@ import { FormField } from '../../../components/UI/FormField.tsx';
 
 interface SubmitWizardProps {
   requests?: AssessmentRequest[];
-  onSubmit: (request: AssessmentRequest) => void;
+  onSubmit: (request: AssessmentRequest | AssessmentRequest[]) => void;
   onUpdate?: (id: string, status: Status, additional?: Partial<AssessmentRequest>) => void;
 }
+
+type CandidateAddMode = 'single' | 'batch' | null;
+type CollectSubStep = 'mode' | 'type' | 'info';
+type BatchCandidate = {
+  id: string;
+  name: string;
+  employeeId: string;
+  workLocation: string;
+  email: string;
+  nationality: string;
+  currentResidence: string;
+  jobTitle: string;
+  salary: string;
+  degree: string;
+  onboardingDate: string;
+  visaApplicationType: string;
+  employmentVisaType: string;
+  dependantVisaType: string;
+  issuingCountryRegion: string;
+  applicationCountry: string;
+  departureCountry: string;
+  materialsStatus: string;
+};
+
+const initialBatchCandidates: BatchCandidate[] = [
+  {
+    id: 'bc-1',
+    name: 'Willow Hayes',
+    employeeId: 'HKzhappy_071',
+    workLocation: 'Singapore',
+    email: 'WillowHayes@mail.com',
+    nationality: 'SG-Singapore',
+    currentResidence: 'Singapore',
+    jobTitle: 'Product Manager',
+    salary: 'SGD 9,500 / month',
+    degree: 'Bachelor',
+    onboardingDate: '2026-03-05',
+    visaApplicationType: 'Employment Visa',
+    employmentVisaType: 'Employment Pass',
+    dependantVisaType: '-',
+    issuingCountryRegion: 'out of country',
+    applicationCountry: 'Singapore',
+    departureCountry: 'China',
+    materialsStatus: 'Missing',
+  },
+  {
+    id: 'bc-2',
+    name: 'River Brooks',
+    employeeId: 'HKzhappy_072',
+    workLocation: 'Singapore',
+    email: 'RiverBrooks@mail.com',
+    nationality: 'SG-Singapore',
+    currentResidence: 'Singapore',
+    jobTitle: 'Senior Designer',
+    salary: 'SGD 8,700 / month',
+    degree: 'Master',
+    onboardingDate: '2026-03-05',
+    visaApplicationType: 'Employment + Dependant',
+    employmentVisaType: 'Employment Pass',
+    dependantVisaType: 'Dependent Pass',
+    issuingCountryRegion: 'in country',
+    applicationCountry: 'Singapore',
+    departureCountry: 'Malaysia',
+    materialsStatus: 'Uploaded',
+  },
+];
 
 export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizardProps) => {
   const navigate = useNavigate();
@@ -31,11 +101,13 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
   const existingRequest = requests.find((request) => request.id === requestId);
   const isExistingTask = Boolean(mode && existingRequest);
   const [step, setStep] = useState<WizardStep>(isExistingTask ? WizardStep.VisaRequirements : WizardStep.ServiceModule);
-  const [subStep, setSubStep] = useState<'type' | 'info'>(isExistingTask && mode !== 'supplement' ? 'info' : 'type');
+  const [subStep, setSubStep] = useState<CollectSubStep>(isExistingTask && mode !== 'supplement' ? 'info' : 'mode');
   const [activeVisaType, setActiveVisaType] = useState<'Employment' | 'Dependant'>('Employment');
   const [activeSection, setActiveSection] = useState<'candidate' | 'info' | 'materials' | 'remarks'>(mode === 'supplement' ? 'materials' : 'candidate');
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  const [candidateAddMode, setCandidateAddMode] = useState<CandidateAddMode>(isExistingTask ? 'single' : null);
+  const [batchCandidates, setBatchCandidates] = useState<BatchCandidate[]>(initialBatchCandidates);
 
   const [draft, setDraft] = useState<Partial<AssessmentRequest>>({
     candidateName: existingRequest?.candidateName || 'Amanda Lee',
@@ -57,6 +129,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
   });
 
   const requiresVisaAssessment = draft.visaRequired === true && draft.visaAssessmentRequired === true;
+  const isBatchMode = candidateAddMode === 'batch';
 
   useEffect(() => {
     // If only Dependant is selected, set it as active
@@ -195,6 +268,40 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
       return;
     }
 
+    if (isBatchMode) {
+      const newRequests: AssessmentRequest[] = batchCandidates.map((candidate, index) => ({
+        ...draft as AssessmentRequest,
+        id: `VA-2026-${Math.floor(Math.random() * 9000) + 1000}-${index + 1}`,
+        candidateName: candidate.name,
+        candidateEmail: candidate.email,
+        workLocation: candidate.workLocation,
+        nationality: candidate.nationality,
+        currentLocation: candidate.currentResidence,
+        jobTitle: candidate.jobTitle,
+        salary: candidate.salary,
+        degree: candidate.degree,
+        expectedStartDate: candidate.onboardingDate,
+        visaType: draft.visaRequired ? (candidate.employmentVisaType !== '-' ? candidate.employmentVisaType : candidate.dependantVisaType) : '',
+        status: Status.Pending,
+        currentStage: requiresVisaAssessment ? 'visa_assessment' : 'confirm_order',
+        currentTask: requiresVisaAssessment ? 'Confirm Visa Assessment' : 'Confirm Order [EoR - Onboarding]',
+        client: selectedProject?.client || 'Zhappy',
+        submittedDate: new Date().toISOString().split('T')[0],
+        pendingAssignee: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
+        visaRequired: draft.visaRequired,
+        visaAssessmentRequired: draft.visaAssessmentRequired,
+        visaApplyType: draft.visaRequired
+          ? candidate.visaApplicationType.includes('Dependant') && candidate.visaApplicationType.includes('Employment')
+            ? 'Both'
+            : candidate.visaApplicationType.includes('Dependant')
+              ? 'Dependant'
+              : 'Employment'
+          : undefined,
+      }));
+      onSubmit(newRequests);
+      return;
+    }
+
     const newReq: AssessmentRequest = {
       ...draft as AssessmentRequest,
       id: `VA-2026-${Math.floor(Math.random() * 9000) + 1000}`,
@@ -206,6 +313,58 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
       pendingAssignee: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
     };
     onSubmit(newReq);
+  };
+
+  const goBackFromCollectStep = () => {
+    if (subStep === 'type') {
+      if (isExistingTask) {
+        navigate(existingRequest ? `/requests/detail?id=${existingRequest.id}` : '/requests');
+      } else {
+        setSubStep('mode');
+      }
+      return;
+    }
+
+    if (activeSection === 'candidate') {
+      setSubStep('type');
+      return;
+    }
+
+    if (activeSection === 'info') {
+      setActiveSection('candidate');
+      return;
+    }
+
+    if (activeSection === 'materials') {
+      setActiveSection('info');
+    }
+  };
+
+  const goForwardFromCollectStep = () => {
+    if (subStep === 'type') {
+      setSubStep('info');
+      setActiveSection('candidate');
+      return;
+    }
+
+    if (requiresVisaAssessment && activeSection === 'candidate') {
+      setActiveSection('info');
+      return;
+    }
+
+    if (requiresVisaAssessment && activeSection === 'info') {
+      setActiveSection(isBatchMode ? 'remarks' : 'materials');
+      return;
+    }
+
+    if (requiresVisaAssessment && !isBatchMode && activeSection === 'materials') {
+      setActiveSection('remarks');
+      return;
+    }
+
+    if (!requiresVisaAssessment && activeSection === 'candidate') {
+      setActiveSection('remarks');
+    }
   };
 
   return (
@@ -316,7 +475,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
             <button
               onClick={() => {
                 if (selectedProject) {
-                  setSubStep('type');
+                  setSubStep(isExistingTask ? 'type' : 'mode');
                   setStep(WizardStep.VisaRequirements);
                 }
               }}
@@ -333,14 +492,14 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
       {step === WizardStep.VisaRequirements && (
         <div className="flex h-full flex-col overflow-hidden bg-white">
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            {(!isExistingTask || mode === 'supplement') && !(!requiresVisaAssessment && subStep === 'info') && (
+            {subStep !== 'mode' && (!isExistingTask || mode === 'supplement') && !(!requiresVisaAssessment && subStep === 'info') && (
               <div className="w-56 shrink-0 border-r border-slate-200 bg-white px-4 py-8">
                 <p className="mb-4 px-2 text-xs font-bold uppercase tracking-wider text-slate-400">Steps</p>
                 <div className="space-y-1">
                   {([
                     { id: 'type' as const, label: 'Visa Application Type' },
                     ...(requiresVisaAssessment ? [
-                      { id: 'candidate' as const, label: 'Candidate Info' },
+                      { id: 'candidate' as const, label: 'Basic Candidate Info' },
                       { id: 'visa' as const, label: 'Visa Requirements' },
                     ] : []),
                   ] as const).map((item, idx) => {
@@ -357,7 +516,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                       <button
                         key={item.id}
                         onClick={() => {
-                          if (item.id === 'type') {
+                          if (item.id === 'type' && candidateAddMode) {
                             setSubStep('type');
                           } else if (item.id === 'candidate') {
                             setSubStep('info');
@@ -367,7 +526,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                             setActiveSection(mode === 'supplement' ? 'materials' : 'info');
                           }
                         }}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors ${isActive ? 'bg-blue-50 font-bold text-brand-blue' : isPast ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : draft.visaRequired !== undefined ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : 'text-slate-400 cursor-not-allowed'}`}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors ${isActive ? 'bg-blue-50 font-bold text-brand-blue' : isPast ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : candidateAddMode ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : 'text-slate-400 cursor-not-allowed'}`}
                       >
                         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isActive ? 'border-brand-blue' : isPast ? 'border-emerald-500' : 'border-slate-300'}`}>
                           {isPast ? <CheckCircle2 size={12} className="text-emerald-500" /> : <span className={`text-xs font-bold ${isActive ? 'text-brand-blue' : 'text-slate-400'}`}>{idx + 1}</span>}
@@ -379,11 +538,15 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                 </div>
               </div>
             )}
-            {subStep === 'type' ? (
+            {subStep === 'mode' ? (
+              <AddCandidateModeStep selectedMode={candidateAddMode} onSelect={setCandidateAddMode} />
+            ) : subStep === 'type' ? (
               <div className="flex flex-col flex-1 overflow-y-auto p-5">
                 <div className="flex flex-col flex-1 w-full rounded-2xl bg-slate-50 p-10">
                   <p className="mb-8 text-sm font-medium leading-7 text-slate-500">
-                    Please confirm whether the candidate you are onboarding is local or expat. If the candidate is an expat and requires work authorization, please apply for a visa for this candidate.
+                    {isBatchMode
+                      ? 'Please confirm whether the candidates you are onboarding are local or expat. If the candidates are expats and require work authorization, please apply for visas for this group. If visa support is required, please also confirm whether this group needs visa pre-assessment.'
+                      : 'Please confirm whether the candidate you are onboarding is local or expat. If the candidate is an expat and requires work authorization, please apply for a visa for this candidate.'}
                   </p>
                   <div className="space-y-10">
                     <div className="space-y-4">
@@ -407,7 +570,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         </label>
                       </div>
                     </div>
-                    {draft.visaRequired && (
+                    {draft.visaRequired && !isBatchMode && (
                       <div className="space-y-4">
                         <label className="block text-sm font-bold text-slate-900">
                           <span className="mr-1 text-rose-500">*</span>Which type of visa do you need to apply for?
@@ -458,6 +621,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                       </div>
                     )}
                   </div>
+                  <CollectStepActions className="mt-auto" onContinue={goForwardFromCollectStep} />
                 </div>
               </div>
             ) : (
@@ -495,7 +659,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     )}
                     
                     {/* Level 1 Tabs: Employment / Dependant */}
-                    {requiresVisaAssessment && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
+                    {requiresVisaAssessment && !isBatchMode && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
                       <div className="flex gap-8 border-b border-slate-200">
                         {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
                           <button 
@@ -521,7 +685,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     )}
 
                     {/* Level 2 Tabs: Visa Info / Evaluation Materials */}
-                    {requiresVisaAssessment && activeSection !== 'candidate' && !(mode === 'complete' && activeSection !== 'remarks') && (
+                    {requiresVisaAssessment && !isBatchMode && activeSection !== 'candidate' && !(mode === 'complete' && activeSection !== 'remarks') && (
                     <div className="flex gap-8 border-b border-slate-100">
                       <button 
                         onClick={() => setActiveSection('info')}
@@ -543,7 +707,19 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     )}
 
                     {/* Content Section */}
-                    {activeSection === 'candidate' ? (
+                    {isBatchMode && activeSection === 'candidate' ? (
+                      requiresVisaAssessment ? (
+                        <BatchAssessmentCandidateInfo candidates={batchCandidates} onRemove={(id) => setBatchCandidates((prev) => prev.filter((candidate) => candidate.id !== id))} />
+                      ) : (
+                        <BatchProvideCandidateInformation candidates={batchCandidates} onRemove={(id) => setBatchCandidates((prev) => prev.filter((candidate) => candidate.id !== id))} />
+                      )
+                    ) : isBatchMode && activeSection === 'info' ? (
+                      <BatchVisaRequirements
+                        candidates={batchCandidates}
+                        onUpdate={(id, field, value) => setBatchCandidates((prev) => prev.map((candidate) => candidate.id === id ? { ...candidate, [field]: value } : candidate))}
+                        onRemove={(id) => setBatchCandidates((prev) => prev.filter((candidate) => candidate.id !== id))}
+                      />
+                    ) : activeSection === 'candidate' ? (
                       (mode === 'complete' || !requiresVisaAssessment) ? (
                         <CandidateCreationStep
                           draft={draft}
@@ -649,6 +825,12 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     </>
                     )}
                   </div>
+                  {activeSection !== 'remarks' && mode !== 'complete' && (
+                    <CollectStepActions
+                      onBack={goBackFromCollectStep}
+                      onContinue={activeSection === 'candidate' ? goForwardFromCollectStep : undefined}
+                    />
+                  )}
               </div>
             </div>
             )}
@@ -701,51 +883,41 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                 {activeSection === 'candidate' ? 'Create Candidate & Next' : activeSection !== 'remarks' ? 'Next' : 'Complete'}
               </button>
             </div>
-          ) : subStep === 'type' ? (
+          ) : subStep === 'mode' ? (
             <div className="shrink-0 grid grid-cols-3 gap-3 border-t border-slate-200 bg-white p-5">
               <button onClick={() => navigate('/requests')} className="h-12 rounded border border-slate-200 text-sm font-bold">Cancel</button>
               <button
-                onClick={() => {
-                  if (isExistingTask) {
-                    navigate(existingRequest ? `/requests/detail?id=${existingRequest.id}` : '/requests');
-                  } else {
-                    setStep(WizardStep.LocationProject);
-                  }
-                }}
+                onClick={() => setStep(WizardStep.LocationProject)}
                 className="h-12 rounded border border-slate-200 text-sm font-bold text-slate-600"
-              >Back</button>
+              >
+                Back
+              </button>
               <button
-                onClick={() => {
-                  setSubStep('info');
-                  setActiveSection('candidate');
-                }}
-                className="h-12 rounded bg-brand-blue text-sm font-bold text-white"
+                onClick={() => candidateAddMode && setSubStep('type')}
+                disabled={!candidateAddMode}
+                className={`h-12 rounded text-sm font-bold text-white ${candidateAddMode ? 'bg-brand-blue' : 'bg-slate-300 cursor-not-allowed'}`}
               >
                 Next
               </button>
             </div>
-          ) : (
+          ) : subStep !== 'mode' ? (
             <div className="shrink-0 grid grid-cols-3 gap-3 border-t border-slate-200 bg-white p-5">
               <button onClick={() => navigate('/requests')} className="h-12 rounded border border-slate-200 text-sm font-bold text-slate-600">Cancel</button>
               <button
                 onClick={() => {
                   if (activeSection === 'remarks') {
-                    setActiveSection(requiresVisaAssessment ? 'materials' : 'candidate');
-                    return;
-                  }
-                  if (requiresVisaAssessment && activeSection === 'materials') {
-                    setActiveSection('info');
-                    return;
-                  }
-                  if (requiresVisaAssessment && activeSection === 'info') {
-                    setActiveSection('candidate');
+                    setActiveSection(requiresVisaAssessment ? (isBatchMode ? 'info' : 'materials') : 'candidate');
                     return;
                   }
                   if (isExistingTask && mode !== 'supplement') {
                     navigate('/requests');
                     return;
                   }
-                  setSubStep('type');
+                  if (subStep === 'type') {
+                    setSubStep('mode');
+                    return;
+                  }
+                  setStep(WizardStep.LocationProject);
                 }}
                 className="h-12 rounded border border-slate-200 text-sm font-bold text-slate-600"
               >
@@ -753,14 +925,6 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               </button>
               <button
                 onClick={() => {
-                  if (requiresVisaAssessment && activeSection === 'candidate') {
-                    setActiveSection('info');
-                    return;
-                  }
-                  if (requiresVisaAssessment && activeSection === 'info') {
-                    setActiveSection('materials');
-                    return;
-                  }
                   if (activeSection !== 'remarks') {
                     setActiveSection('remarks');
                     return;
@@ -772,7 +936,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                 {activeSection !== 'remarks' ? 'Next' : 'Complete'}
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       )}
         </div>
@@ -867,6 +1031,308 @@ const CandidateCreationStep = ({
     </div>
   );
 };
+
+const AddCandidateModeStep = ({
+  selectedMode,
+  onSelect,
+}: {
+  selectedMode: CandidateAddMode;
+  onSelect: (mode: CandidateAddMode) => void;
+}) => (
+  <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-10">
+    <div className="mb-12 text-center">
+      <h2 className="text-3xl font-semibold text-slate-900">How would you like to add candidates?</h2>
+      <p className="mt-4 text-base text-slate-400">Choose the method that best fits your needs.</p>
+    </div>
+    <div className="grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
+      <button
+        onClick={() => onSelect('single')}
+        className={`rounded-2xl border-2 bg-white p-10 text-left transition-all ${selectedMode === 'single' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
+      >
+        <div className="mb-9 flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100 text-brand-blue">
+          <UserPlus size={42} />
+        </div>
+        <h3 className="text-3xl font-semibold text-slate-900">Add one new hire</h3>
+        <p className="mt-5 max-w-md text-lg leading-8 text-slate-400">
+          Create a Request for one candidate by entering the required information step by step.
+        </p>
+      </button>
+      <button
+        onClick={() => onSelect('batch')}
+        className={`rounded-2xl border-2 bg-white p-10 text-left transition-all ${selectedMode === 'batch' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
+      >
+        <div className="mb-9 flex h-20 w-20 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+          <Users size={42} />
+        </div>
+        <h3 className="text-3xl font-semibold text-slate-900">Add multiple new hires</h3>
+        <p className="mt-5 max-w-md text-lg leading-8 text-slate-400">
+          Create Request for multiple candidates at once. Supports Excel import or selection from the talent pool for efficient processing.
+        </p>
+      </button>
+    </div>
+  </div>
+);
+
+const CollectStepActions = ({
+  className = 'mt-8',
+  onBack,
+  onContinue,
+}: {
+  className?: string;
+  onBack?: () => void;
+  onContinue?: () => void;
+}) => (
+  <div className={`${className} flex justify-center gap-4 border-t border-slate-200 pt-6 ${onBack && onContinue ? '' : 'px-4'}`}>
+    {onBack && (
+      <button
+        onClick={onBack}
+        className="h-11 w-48 rounded border border-slate-200 bg-white text-sm font-bold text-slate-600"
+      >
+        Back
+      </button>
+    )}
+    {onContinue && (
+      <button
+        onClick={onContinue}
+        className="h-11 w-48 rounded bg-brand-blue text-sm font-bold text-white"
+      >
+        Continue
+      </button>
+    )}
+  </div>
+);
+
+const BatchActionBar = ({ showSelect }: { showSelect?: boolean }) => (
+  <div className="flex items-center gap-3">
+    {showSelect && (
+      <button className="inline-flex h-11 items-center gap-2 rounded border border-slate-200 px-5 text-sm font-bold text-slate-800">
+        <Search size={16} />
+        Select
+      </button>
+    )}
+    <button className="inline-flex h-11 items-center gap-2 rounded border border-slate-200 px-5 text-sm font-bold text-slate-800">
+      <Download size={16} />
+      Import
+    </button>
+    <button className="inline-flex h-11 items-center gap-2 rounded bg-brand-blue px-5 text-sm font-bold text-white">
+      <Plus size={18} />
+      Add
+    </button>
+  </div>
+);
+
+const BatchHeader = ({
+  title,
+  description,
+  showSelect,
+  hideActions,
+}: {
+  title: string;
+  description: string;
+  showSelect?: boolean;
+  hideActions?: boolean;
+}) => (
+  <div className="mb-5 flex items-start justify-between gap-6">
+    <div>
+      <h3 className="text-2xl font-bold text-slate-900">{title}</h3>
+      <p className="mt-2 text-base text-slate-400">{description}</p>
+    </div>
+    {!hideActions && <BatchActionBar showSelect={showSelect} />}
+  </div>
+);
+
+const BatchAssessmentCandidateInfo = ({
+  candidates,
+  onRemove,
+}: {
+  candidates: BatchCandidate[];
+  onRemove: (id: string) => void;
+}) => (
+  <div className="py-4">
+    <BatchHeader title="Candidate Info" description={`Total ${candidates.length} candidates added for visa pre-assessment.`} />
+    <div className="overflow-auto">
+      <table className="w-full min-w-[1500px] text-sm">
+        <thead className="bg-slate-100 text-left text-slate-700">
+          <tr>
+            {['Candidate Name', 'Candidate Email', 'Nationality / Citizenship', 'Current Residence', 'Work Location', 'Job Title / Position', 'Salary', 'Degree / Education Level', 'Expected Start Date', 'Operation'].map((header) => (
+              <th key={header} className={`px-4 py-4 font-bold ${header === 'Operation' ? 'sticky right-0 z-10 bg-slate-100 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]' : ''}`}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {candidates.map((candidate) => (
+            <tr key={candidate.id}>
+              <td className="px-4 py-4 text-slate-700">{candidate.name}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.email}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.nationality}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.currentResidence}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.workLocation}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.jobTitle}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.salary}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.degree}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.onboardingDate}</td>
+              <td className="sticky right-0 bg-white px-4 py-4 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
+                <RowActions onRemove={() => onRemove(candidate.id)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const BatchVisaRequirements = ({
+  candidates,
+  onUpdate,
+  onRemove,
+}: {
+  candidates: BatchCandidate[];
+  onUpdate: (id: string, field: keyof BatchCandidate, value: string) => void;
+  onRemove: (id: string) => void;
+}) => (
+  <div className="py-4">
+    <BatchHeader title="Visa Requirements" description={`Total ${candidates.length} candidates require visa pre-assessment.`} hideActions />
+    <div className="overflow-auto">
+      <table className="w-full min-w-[1800px] text-sm">
+        <thead className="bg-slate-100 text-left text-slate-700">
+          <tr>
+            {['Name', 'Which type of visa do you want to apply for?', 'Employment Visa Type', 'Dependant Visa Type', 'Within the Issuing Country/Region?', 'Country / Region at the time of Visa application', 'Departure Country / Region before entering Visa Location', 'Evaluation Materials', 'Operation'].map((header) => (
+              <th key={header} className={`px-4 py-4 font-bold ${header === 'Operation' ? 'sticky right-0 z-10 bg-slate-100 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]' : ''}`}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {candidates.map((candidate) => (
+            <tr key={candidate.id}>
+              <td className="px-4 py-4 text-slate-700">{candidate.name}</td>
+              <td className="px-4 py-4">
+                <TableSelect
+                  value={candidate.visaApplicationType}
+                  options={['Employment Visa', 'Dependant Visa', 'Employment + Dependant']}
+                  onChange={(value) => onUpdate(candidate.id, 'visaApplicationType', value)}
+                />
+              </td>
+              <td className="px-4 py-4">
+                <TableSelect
+                  value={candidate.employmentVisaType}
+                  options={['-', 'Employment Pass', 'S Pass', 'Work Permit']}
+                  onChange={(value) => onUpdate(candidate.id, 'employmentVisaType', value)}
+                />
+              </td>
+              <td className="px-4 py-4">
+                <TableSelect
+                  value={candidate.dependantVisaType}
+                  options={['-', 'Dependent Pass', 'Long Term Visit Pass', 'Dependent Permit']}
+                  onChange={(value) => onUpdate(candidate.id, 'dependantVisaType', value)}
+                />
+              </td>
+              <td className="px-4 py-4">
+                <TableSelect
+                  value={candidate.issuingCountryRegion}
+                  options={['out of country', 'in country']}
+                  onChange={(value) => onUpdate(candidate.id, 'issuingCountryRegion', value)}
+                />
+              </td>
+              <td className="px-4 py-4">
+                <TableInput value={candidate.applicationCountry} onChange={(value) => onUpdate(candidate.id, 'applicationCountry', value)} />
+              </td>
+              <td className="px-4 py-4">
+                <TableInput value={candidate.departureCountry} onChange={(value) => onUpdate(candidate.id, 'departureCountry', value)} />
+              </td>
+              <td className="px-4 py-4">
+                <span className={`font-bold ${candidate.materialsStatus === 'Uploaded' ? 'text-emerald-600' : 'text-amber-600'}`}>{candidate.materialsStatus}</span>
+              </td>
+              <td className="sticky right-0 bg-white px-4 py-4 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
+                <RowActions onRemove={() => onRemove(candidate.id)} upload />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const BatchProvideCandidateInformation = ({
+  candidates,
+  onRemove,
+}: {
+  candidates: BatchCandidate[];
+  onRemove: (id: string) => void;
+}) => (
+  <div className="py-4">
+    <BatchHeader title="Provide Candidate Information" description={`Total ${candidates.length} candidates added to this order.`} showSelect />
+    <div className="overflow-auto">
+      <table className="w-full min-w-[1200px] text-sm">
+        <thead className="bg-slate-100 text-left text-slate-700">
+          <tr>
+            {['Name', 'Employee ID', 'Work Location', 'Email Address', 'Nationality', 'Onboarding Date', 'Operation'].map((header) => (
+              <th key={header} className={`px-4 py-4 font-bold ${header === 'Operation' ? 'sticky right-0 z-10 bg-slate-100 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]' : ''}`}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {candidates.map((candidate) => (
+            <tr key={candidate.id}>
+              <td className="px-4 py-4 text-slate-700">{candidate.name}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.employeeId}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.workLocation}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.email}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.nationality}</td>
+              <td className="px-4 py-4 text-slate-700">{candidate.onboardingDate}</td>
+              <td className="sticky right-0 bg-white px-4 py-4 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
+                <RowActions onRemove={() => onRemove(candidate.id)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const RowActions = ({ onRemove, upload }: { onRemove: () => void; upload?: boolean }) => (
+  <div className="flex items-center gap-4 font-bold">
+    <button className="text-brand-blue">Edit</button>
+    {upload && <button className="text-brand-blue">Upload</button>}
+    <button onClick={onRemove} className="text-red-400">Remove</button>
+  </div>
+);
+
+const TableSelect = ({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) => (
+  <select
+    value={value}
+    onChange={(event) => onChange(event.target.value)}
+    className="h-10 min-w-[190px] rounded border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition-colors focus:border-brand-blue"
+  >
+    {options.map((option) => (
+      <option key={option} value={option}>{option}</option>
+    ))}
+  </select>
+);
+
+const TableInput = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => (
+  <input
+    value={value}
+    onChange={(event) => onChange(event.target.value)}
+    className="h-10 min-w-[170px] rounded border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition-colors focus:border-brand-blue"
+  />
+);
 
 const CompleteWorkVisaStep = ({
   draft,

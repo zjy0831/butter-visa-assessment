@@ -336,7 +336,7 @@ currentTask = Confirm Visa Assessment
 SD Confirm Visa Assessment
 ```
 
-弹窗内容沿用当前项目中的 visa assessment 表单内容，但把 `Candidate Info`、`Visa Requirements`、`Remark & Attachment` 展示为顶部 step。
+弹窗内容沿用当前项目中的 visa assessment 表单内容，但不再展示顶部 step；`Candidate Info`、`Visa Requirements`、`Remark & Attachment` 直接作为普通 tab 展示。
 
 标题下方先展示说明文案：
 
@@ -628,4 +628,3 @@ Confirm Order 中应能查看：
 20. SD 点击 `View` 进入 Request Info，并在当前 `Confirm Order` 节点点击 `Process`。
 21. 使用现有 Confirm Order 交互完成接单。
 22. 系统执行 `Open Service Order`，request status 变为 `Processing`，`currentStage = service_order`。
-
