@@ -72,7 +72,10 @@ export const INITIAL_REQUESTS: AssessmentRequest[] = [
       { id: 'sg-2', name: 'Resume / CV', isRequired: true, status: 'Uploaded', lastUpdated: '2026-05-14' },
       { id: 'sg-3', name: 'Degree Certificate', isRequired: true, status: 'Missing' },
       { id: 'sg-4', name: 'Existing Visa / Residence Permit', isRequired: false, status: 'Not uploaded' },
-    ]
+    ],
+    visaRequired: true,
+    visaAssessmentRequired: true,
+    visaApplyType: 'Both',
   },
   {
     id: 'VA-2026-0030',
@@ -94,7 +97,10 @@ export const INITIAL_REQUESTS: AssessmentRequest[] = [
     returnRemarks: 'Please upload the degree certificate and confirm the candidate current residence before assessment can continue.',
     pendingAssignee: '[Client Contact] Daniel Wong',
     submittedDate: '2026-05-10',
-    documents: []
+    documents: [],
+    visaRequired: true,
+    visaAssessmentRequired: true,
+    visaApplyType: 'Employment',
   },
   {
     id: 'VA-2026-0029',
@@ -115,6 +121,32 @@ export const INITIAL_REQUESTS: AssessmentRequest[] = [
     client: 'Nexus Systems',
     pendingAssignee: '[BIPO Service Delivery] SD-Jelena Zhang',
     submittedDate: '2026-05-08',
-    documents: []
+    documents: [],
+    visaRequired: true,
+    visaAssessmentRequired: false,
+    visaApplyType: 'Both',
+  },
+  {
+    id: 'VA-2026-0028',
+    candidateName: 'Roy Anson',
+    candidateEmail: 'roy.anson@northstar.com',
+    workLocation: 'Singapore',
+    nationality: 'Singapore',
+    currentLocation: 'Singapore',
+    jobTitle: 'Finance Manager',
+    salary: 'SGD 8,200 / month',
+    degree: 'Bachelor',
+    expectedStartDate: '2026-06-20',
+    visaType: '',
+    remark: '',
+    status: Status.Pending,
+    currentStage: 'confirm_order',
+    currentTask: 'Confirm Order [EoR - Onboarding]',
+    client: 'Northstar Labs',
+    pendingAssignee: '[BIPO Service Delivery] SD-Jelena Zhang',
+    submittedDate: '2026-05-07',
+    documents: [],
+    visaRequired: false,
+    visaAssessmentRequired: false,
   }
 ];

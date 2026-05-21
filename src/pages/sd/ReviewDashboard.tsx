@@ -25,7 +25,8 @@ interface ReviewDashboardProps {
 
 type RequestView = 'list' | 'detail';
 type ConfirmTab = 'candidate' | 'visa' | 'remarks';
-type AssessmentTab = 'visa' | 'remarks';
+type AssessmentTab = 'candidate' | 'visa' | 'remarks';
+type ConfirmStep = 'requestInfo' | 'visaType';
 type VisaScope = 'Employment' | 'Dependent';
 type VisaSection = 'person' | 'visaInfo' | 'materials' | 'checklist';
 type TimelineItem = {
@@ -489,36 +490,37 @@ const AssessmentModal = ({
   onReturn: () => void;
   onConfirm: () => void;
 }) => {
-  const [activeTab, setActiveTab] = useState<AssessmentTab>('visa');
+  const [activeTab, setActiveTab] = useState<AssessmentTab>('candidate');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
       <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
         <ModalHeader title="SD Confirm Visa Assessment" onClose={onClose} />
-        <div className="mx-5 mb-5 grid grid-cols-2 overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300">
-          <button onClick={() => setActiveTab('visa')} className="text-left">
-            <StepCell active={activeTab === 'visa'}>Visa Requirements</StepCell>
-          </button>
-          <button onClick={() => setActiveTab('remarks')} className="text-left">
-            <StepCell active={activeTab === 'remarks'}>Remark & Attachment</StepCell>
-          </button>
+        <div className="mx-5 mb-5">
+          <p className="mb-5 text-sm font-medium leading-7 text-slate-500">
+            This is the candidate basic information and visa pre-assessment material submitted by the client. Please assess whether the candidate is eligible for visa application. If there are any issues, you can edit directly or return it to the client for correction.
+          </p>
+          <div className="flex gap-9 border-b border-slate-200">
+            <TabButton active={activeTab === 'candidate'} onClick={() => setActiveTab('candidate')}>Candidate Info</TabButton>
+            <TabButton active={activeTab === 'visa'} onClick={() => setActiveTab('visa')}>Visa Requirements</TabButton>
+            <TabButton active={activeTab === 'remarks'} onClick={() => setActiveTab('remarks')}>Remark & Attachment</TabButton>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
-          {activeTab === 'visa' ? <VisaRequirementView request={request} includeChecklist /> : <RemarkAttachmentView request={request} />}
+          {activeTab === 'candidate' && <AssessmentCandidateInfoView request={request} />}
+          {activeTab === 'visa' && <VisaRequirementView request={request} includeChecklist hideCandidateSection />}
+          {activeTab === 'remarks' && <RemarkAttachmentView request={request} />}
         </div>
 
-        <div className={`grid gap-3 bg-slate-50 px-4 py-3 ${activeTab === 'remarks' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
           <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
-          {activeTab === 'remarks' && (
-            <button onClick={() => setActiveTab('visa')} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Back</button>
-          )}
           <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
           <button
-            onClick={() => activeTab === 'visa' ? setActiveTab('remarks') : onConfirm()}
+            onClick={onConfirm}
             className="h-10 rounded bg-brand-blue text-sm font-bold text-white"
           >
-            {activeTab === 'visa' ? 'Next' : 'Confirm'}
+            Assessment Approved
           </button>
         </div>
       </div>
@@ -538,38 +540,186 @@ const ConfirmOrderModal = ({
   onNext: () => void;
 }) => {
   const [activeTab, setActiveTab] = useState<ConfirmTab>('candidate');
+  const [confirmStep, setConfirmStep] = useState<ConfirmStep>('requestInfo');
+  const hasVisa = request.visaRequired !== false;
+  const skipsAssessment = hasVisa && request.visaAssessmentRequired === false;
+  const stepLabels = hasVisa
+    ? ['Confirm Request Info', 'Confirm Visa Type', 'Confirm Onboarding Flow']
+    : ['Confirm Request Info', 'Confirm Onboarding Flow'];
+  const activeStepIndex = confirmStep === 'visaType' ? 1 : 0;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
       <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
         <ModalHeader title="Confirm Order [EoR - Onboarding]" onClose={onClose} />
 
-        <div className="mx-5 mb-6 grid grid-cols-3 overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300">
-          {['Confirm Request Info', 'Confirm Visa Type', 'Confirm Onboarding Flow'].map((step, index) => (
+        <div
+          className="mx-5 mb-6 grid overflow-hidden rounded bg-slate-100 text-xs font-medium text-slate-300"
+          style={{ gridTemplateColumns: `repeat(${stepLabels.length}, minmax(0, 1fr))` }}
+        >
+          {stepLabels.map((step, index) => (
             <React.Fragment key={step}>
-              <StepCell active={index === 0}>{step}</StepCell>
+              <StepCell active={index === activeStepIndex}>{step}</StepCell>
             </React.Fragment>
           ))}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
-          <div className="flex gap-9 border-b border-slate-200">
-            <TabButton active={activeTab === 'candidate'} onClick={() => setActiveTab('candidate')}>Candidate Info</TabButton>
-            <TabButton active={activeTab === 'visa'} onClick={() => setActiveTab('visa')}>Visa Requirements</TabButton>
-            <TabButton active={activeTab === 'remarks'} onClick={() => setActiveTab('remarks')}>Remarks & Attachments</TabButton>
-          </div>
+          {confirmStep === 'requestInfo' ? (
+            <>
+              <div className="flex gap-9 border-b border-slate-200">
+                <TabButton active={activeTab === 'candidate'} onClick={() => setActiveTab('candidate')}>Candidate Info</TabButton>
+                <TabButton active={activeTab === 'visa'} onClick={() => setActiveTab('visa')}>Visa Requirements</TabButton>
+                <TabButton active={activeTab === 'remarks'} onClick={() => setActiveTab('remarks')}>Remarks & Attachments</TabButton>
+              </div>
 
-          {activeTab === 'candidate' && <CandidateInfoView request={request} />}
-          {activeTab === 'visa' && <VisaRequirementView request={request} includeChecklist />}
-          {activeTab === 'remarks' && <RemarkAttachmentView request={request} />}
+              {activeTab === 'candidate' && <CandidateInfoView request={request} />}
+              {activeTab === 'visa' && (
+                hasVisa
+                  ? skipsAssessment
+                    ? <ConfirmOrderVisaSummary request={request} />
+                    : <VisaRequirementView request={request} includeChecklist />
+                  : <NoVisaRequirementSummary />
+              )}
+              {activeTab === 'remarks' && <RemarkAttachmentView request={request} />}
+            </>
+          ) : (
+            <ConfirmVisaTypeStep request={request} />
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
           <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
           <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
-          <button onClick={onNext} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Next</button>
+          <button
+            onClick={() => {
+              if (skipsAssessment && confirmStep === 'requestInfo') {
+                setConfirmStep('visaType');
+                return;
+              }
+              onNext();
+            }}
+            className="h-10 rounded bg-brand-blue text-sm font-bold text-white"
+          >
+            Next
+          </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+const NoVisaRequirementSummary = () => (
+  <div className="pt-8">
+    <ReadOnlyGrid rows={[['Is a visa application required?', 'NO']]} />
+  </div>
+);
+
+const ConfirmOrderVisaSummary = ({ request }: { request: AssessmentRequest }) => (
+  <div className="pt-8">
+    <ReadOnlyGrid
+      rows={[
+        ['Is a visa application required?', 'YES'],
+        ['Visa Application Type', formatVisaApplicationType(request.visaApplyType)],
+        ['Is visa pre-assessment required?', 'No'],
+      ]}
+    />
+  </div>
+);
+
+const ConfirmVisaTypeStep = ({ request }: { request: AssessmentRequest }) => {
+  const scopes = getVisaScopes(request.visaApplyType);
+  const [activeScope, setActiveScope] = useState<VisaScope>(scopes[0]);
+  const documents = request.documents.length > 0 ? request.documents : fallbackDocuments;
+
+  return (
+    <div className="space-y-8 py-4">
+      <section className="space-y-3">
+        <label className="block text-sm font-bold text-slate-900">Offline Pre-assessment Communication</label>
+        <div className="rounded border border-slate-200 bg-white">
+          <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 text-xs font-bold text-slate-500">
+            <button className="rounded px-2 py-1 hover:bg-slate-50">B</button>
+            <button className="rounded px-2 py-1 italic hover:bg-slate-50">I</button>
+            <button className="rounded px-2 py-1 hover:bg-slate-50">List</button>
+            <button className="ml-auto inline-flex items-center gap-1 rounded border border-blue-200 px-3 py-1.5 text-brand-blue">
+              <Paperclip size={13} />
+              Upload proof
+            </button>
+          </div>
+          <textarea
+            className="min-h-32 w-full resize-none p-4 text-sm outline-none"
+            placeholder="Record the offline pre-assessment discussion with the client, decision basis, or supporting notes."
+          />
+        </div>
+      </section>
+
+      <section>
+        <div className="flex gap-10 border-b border-slate-200">
+          {scopes.map((scope) => (
+            <React.Fragment key={scope}>
+              <TabButton active={activeScope === scope} onClick={() => setActiveScope(scope)}>
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 size={17} className="text-emerald-500" />
+                  {scope} Visa
+                </span>
+              </TabButton>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <div className="grid max-w-4xl grid-cols-1 gap-8 py-8 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-900">
+              <span className="mr-1 text-rose-500">*</span>Visa Type
+            </label>
+            <select className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-brand-blue">
+              <option>{activeScope === 'Employment' ? 'Employment Pass' : 'Dependent Pass'}</option>
+              <option>{activeScope === 'Employment' ? 'S Pass' : 'Long Term Visit Pass'}</option>
+              <option>{activeScope === 'Employment' ? 'Work Permit' : 'Dependent Permit'}</option>
+            </select>
+          </div>
+
+          {activeScope === 'Employment' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-900">
+                <span className="mr-1 text-rose-500">*</span>Within the Issuing Country/Region?
+              </label>
+              <select className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-brand-blue">
+                <option>out of country</option>
+                <option>in country</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="my-2 flex items-center gap-5">
+          <div className="h-px flex-1 bg-slate-200" />
+          <h3 className="text-sm font-bold text-slate-900">Visa Type: {activeScope === 'Employment' ? 'Employment Pass' : 'Dependent Pass'}</h3>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <p className="mb-4 text-sm font-medium text-slate-700">Candidate Documents</p>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-100 text-left text-slate-600">
+            <tr>
+              <th className="px-4 py-4">Name</th>
+              <th className="px-4 py-4">Type</th>
+              <th className="px-4 py-4">Is required</th>
+              <th className="px-4 py-4">Reminder</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {documents.map((doc) => (
+              <tr key={doc.id}>
+                <td className="px-4 py-4 text-slate-700">{doc.name.replace(' Bio Page', '')}</td>
+                <td className="px-4 py-4 text-slate-700">Attachment</td>
+                <td className="px-4 py-4 text-slate-700">{doc.isRequired ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-4 text-slate-500">-</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 };
@@ -608,12 +758,39 @@ const CandidateInfoView = ({ request }: { request: AssessmentRequest }) => (
   </div>
 );
 
+const AssessmentCandidateInfoView = ({ request }: { request: AssessmentRequest }) => (
+  <div className="pt-2">
+    <div className="mb-1">
+      <h3 className="text-2xl font-semibold tracking-normal text-slate-800">{request.candidateName}</h3>
+    </div>
+    <ReadOnlyGrid
+      rows={[
+        ['Candidate Name', request.candidateName],
+        ['Candidate Email', request.candidateEmail],
+        ['Nationality / Citizenship', request.nationality],
+        ['Current Residence', request.currentLocation],
+        ['Work Location', request.workLocation],
+        ['Job Title / Position', request.jobTitle],
+        ['Salary', request.salary],
+        ['Degree / Education Level', request.degree],
+        ['Expected Start Date', request.expectedStartDate],
+      ]}
+    />
+    <div className="flex justify-center gap-3 pb-2">
+      <button className="h-9 rounded border border-blue-200 bg-blue-50 px-6 text-sm font-bold text-brand-blue">Edit Directly</button>
+      <button className="h-9 rounded border border-red-200 bg-red-50 px-6 text-sm font-bold text-red-500">Add Return Remarks</button>
+    </div>
+  </div>
+);
+
 const VisaRequirementView = ({
   request,
   includeChecklist,
+  hideCandidateSection,
 }: {
   request: AssessmentRequest;
   includeChecklist?: boolean;
+  hideCandidateSection?: boolean;
 }) => {
   const [activeScope, setActiveScope] = useState<VisaScope>('Employment');
   const [activeSection, setActiveSection] = useState<VisaSection>('visaInfo');
@@ -634,9 +811,12 @@ const VisaRequirementView = ({
 
   return (
     <div className="pt-8">
-      <div className="grid grid-cols-2 gap-24 text-sm">
+      <div className="grid grid-cols-2 gap-x-24 gap-y-7 text-sm">
         <ReadOnlyField label="Is a visa application required?" value={request.visaRequired === false ? 'NO' : 'YES'} />
         <ReadOnlyField label="Visa Application Type" value={formatVisaApplicationType(request.visaApplyType)} />
+        {request.visaRequired && (
+          <ReadOnlyField label="Is visa pre-assessment required?" value={request.visaAssessmentRequired ? 'Yes' : 'No'} />
+        )}
       </div>
 
       <div className="mt-7 flex gap-10 border-b border-slate-200">
@@ -656,9 +836,11 @@ const VisaRequirementView = ({
       </div>
 
       <div className="mt-5 flex gap-10 border-b border-slate-200">
-        <TabButton active={activeSection === 'person'} onClick={() => setActiveSection('person')}>
-          {activeScope === 'Employment' ? 'Candidate Info' : 'Dependent Info'}
-        </TabButton>
+        {!hideCandidateSection && (
+          <TabButton active={activeSection === 'person'} onClick={() => setActiveSection('person')}>
+            {activeScope === 'Employment' ? 'Candidate Info' : 'Dependent Info'}
+          </TabButton>
+        )}
         <TabButton active={activeSection === 'visaInfo'} onClick={() => setActiveSection('visaInfo')}>Visa Info</TabButton>
         <TabButton active={activeSection === 'materials'} onClick={() => setActiveSection('materials')}>
           <span className="inline-flex items-center gap-2">
@@ -673,7 +855,7 @@ const VisaRequirementView = ({
         )}
       </div>
 
-      {activeSection === 'person' && <ReadOnlyGrid rows={personRows} />}
+      {activeSection === 'person' && !hideCandidateSection && <ReadOnlyGrid rows={personRows} />}
       {activeSection === 'visaInfo' && (
         <ReadOnlyGrid rows={activeScope === 'Employment' ? employmentVisaInfo : dependentVisaInfo} />
       )}
@@ -889,6 +1071,12 @@ const formatVisaApplicationType = (type?: AssessmentRequest['visaApplyType']) =>
   if (type === 'Employment') return 'Employment Visa';
   if (type === 'Dependant') return 'Dependent Visa';
   return 'Employment + Dependent';
+};
+
+const getVisaScopes = (type?: AssessmentRequest['visaApplyType']): VisaScope[] => {
+  if (type === 'Employment') return ['Employment'];
+  if (type === 'Dependant') return ['Dependent'];
+  return ['Employment', 'Dependent'];
 };
 
 const fallbackDocuments: DocumentItem[] = [

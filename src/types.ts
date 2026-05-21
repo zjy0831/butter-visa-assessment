@@ -82,6 +82,7 @@ export interface AssessmentRequest {
   documents: DocumentItem[];
   onboardingRequestId?: string;
   visaRequired?: boolean;
+  visaAssessmentRequired?: boolean;
   visaApplyType?: 'Employment' | 'Dependant' | 'Both';
   returnRemarks?: string;
   pendingAssignee?: string;

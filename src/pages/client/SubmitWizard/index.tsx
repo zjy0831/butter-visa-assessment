@@ -52,8 +52,11 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
     status: existingRequest?.status || Status.Pending,
     documents: existingRequest?.documents || [],
     visaRequired: existingRequest?.visaRequired ?? true,
+    visaAssessmentRequired: existingRequest?.visaAssessmentRequired ?? true,
     visaApplyType: existingRequest?.visaApplyType || 'Both',
   });
+
+  const requiresVisaAssessment = draft.visaRequired === true && draft.visaAssessmentRequired === true;
 
   useEffect(() => {
     // If only Dependant is selected, set it as active
@@ -87,18 +90,18 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
     const isSupplementTask = mode === 'supplement';
     const isCompleteTask = mode === 'complete';
     const activeTopStep =
-      isSupplementTask ? (activeSection === 'remarks' ? 'remarks' : (draft.visaRequired === false && subStep === 'info') ? 'candidate' : 'workVisa')
+      isSupplementTask ? (activeSection === 'remarks' ? 'remarks' : (!requiresVisaAssessment && subStep === 'info') ? 'candidate' : 'workVisa')
       : isCompleteTask ? (activeSection === 'candidate' ? 'candidate' : activeSection === 'remarks' ? 'remarks' : 'workVisa')
       : step === WizardStep.ServiceModule ? 'module'
       : step === WizardStep.LocationProject ? 'project'
       : activeSection === 'remarks' ? 'remarks'
-      : (draft.visaRequired === false && subStep === 'info') ? 'candidate'
+      : (!requiresVisaAssessment && subStep === 'info') ? 'candidate'
       : 'workVisa';
 
     const steps = isSupplementTask
       ? [
           { id: 'workVisa', label: 'Supplement Assessment Materials' },
-          ...(draft.visaRequired === false ? [{ id: 'candidate', label: 'Provide Candidate Information' }] : []),
+          ...(!requiresVisaAssessment ? [{ id: 'candidate', label: 'Provide Candidate Information' }] : []),
           { id: 'remarks', label: 'Other Remarks & Attachment' },
         ]
       : isCompleteTask
@@ -111,7 +114,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
           { id: 'module', label: 'Service Module' },
           { id: 'project', label: 'Service Location & Project' },
           { id: 'workVisa', label: 'Collect Work Visa Requirements' },
-          ...(draft.visaRequired === false ? [{ id: 'candidate', label: 'Provide Candidate Information' }] : []),
+          ...(!requiresVisaAssessment ? [{ id: 'candidate', label: 'Provide Candidate Information' }] : []),
           { id: 'remarks', label: 'Other Remarks & Attachment' },
         ];
     const activeIndex = steps.findIndex((item) => item.id === activeTopStep);
@@ -196,8 +199,8 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
       ...draft as AssessmentRequest,
       id: `VA-2026-${Math.floor(Math.random() * 9000) + 1000}`,
       status: Status.Pending,
-      currentStage: draft.visaRequired === false ? 'confirm_order' : 'visa_assessment',
-      currentTask: draft.visaRequired === false ? 'Confirm Order [EoR - Onboarding]' : 'Confirm Visa Assessment',
+      currentStage: requiresVisaAssessment ? 'visa_assessment' : 'confirm_order',
+      currentTask: requiresVisaAssessment ? 'Confirm Visa Assessment' : 'Confirm Order [EoR - Onboarding]',
       client: selectedProject?.client || 'Zhappy',
       submittedDate: new Date().toISOString().split('T')[0],
       pendingAssignee: '[BIPO Service Delivery] SD-MichelleHou hou, SD-Jelena Zhang',
@@ -330,25 +333,38 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
       {step === WizardStep.VisaRequirements && (
         <div className="flex h-full flex-col overflow-hidden bg-white">
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            {(!isExistingTask || mode === 'supplement') && !(draft.visaRequired === false && subStep === 'info') && (
+            {(!isExistingTask || mode === 'supplement') && !(!requiresVisaAssessment && subStep === 'info') && (
               <div className="w-56 shrink-0 border-r border-slate-200 bg-white px-4 py-8">
                 <p className="mb-4 px-2 text-xs font-bold uppercase tracking-wider text-slate-400">Steps</p>
                 <div className="space-y-1">
                   {([
                     { id: 'type' as const, label: 'Visa Application Type' },
-                    ...(draft.visaRequired !== false ? [{ id: 'info' as const, label: 'Visa Requirements' }] : []),
+                    ...(requiresVisaAssessment ? [
+                      { id: 'candidate' as const, label: 'Candidate Info' },
+                      { id: 'visa' as const, label: 'Visa Requirements' },
+                    ] : []),
                   ] as const).map((item, idx) => {
-                    const isActive = subStep === item.id;
-                    const isPast = item.id === 'type' && subStep === 'info';
+                    const isActive =
+                      item.id === 'type'
+                        ? subStep === 'type'
+                        : item.id === 'candidate'
+                          ? subStep === 'info' && activeSection === 'candidate'
+                          : subStep === 'info' && (activeSection === 'info' || activeSection === 'materials');
+                    const isPast =
+                      (item.id === 'type' && subStep === 'info') ||
+                      (item.id === 'candidate' && (activeSection === 'info' || activeSection === 'materials' || activeSection === 'remarks'));
                     return (
                       <button
                         key={item.id}
                         onClick={() => {
                           if (item.id === 'type') {
                             setSubStep('type');
-                          } else if (draft.visaRequired !== undefined) {
+                          } else if (item.id === 'candidate') {
                             setSubStep('info');
-                            setActiveSection(draft.visaRequired === false ? 'candidate' : mode === 'supplement' ? 'materials' : 'info');
+                            setActiveSection('candidate');
+                          } else if (requiresVisaAssessment) {
+                            setSubStep('info');
+                            setActiveSection(mode === 'supplement' ? 'materials' : 'info');
                           }
                         }}
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors ${isActive ? 'bg-blue-50 font-bold text-brand-blue' : isPast ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : draft.visaRequired !== undefined ? 'text-slate-500 cursor-pointer hover:bg-slate-50' : 'text-slate-400 cursor-not-allowed'}`}
@@ -367,7 +383,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               <div className="flex flex-col flex-1 overflow-y-auto p-5">
                 <div className="flex flex-col flex-1 w-full rounded-2xl bg-slate-50 p-10">
                   <p className="mb-8 text-sm font-medium leading-7 text-slate-500">
-                    Please confirm whether a visa application is required for the candidate based on actual needs. If yes, select the visa application type and provide detailed visa requirements. If not, simply select "No visa application required."
+                    Please confirm whether the candidate you are onboarding is local or expat. If the candidate is an expat and requires work authorization, please apply for a visa for this candidate.
                   </p>
                   <div className="space-y-10">
                     <div className="space-y-4">
@@ -379,14 +395,14 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                           <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaRequired ? 'border-brand-blue' : 'border-slate-300'}`}>
                             {draft.visaRequired && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                           </span>
-                          <input type="radio" className="hidden" checked={draft.visaRequired === true} onChange={() => setDraft(p => ({ ...p, visaRequired: true }))} />
+                          <input type="radio" className="hidden" checked={draft.visaRequired === true} onChange={() => setDraft(p => ({ ...p, visaRequired: true, visaAssessmentRequired: p.visaAssessmentRequired ?? true }))} />
                           <span className={`text-sm font-medium ${draft.visaRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes</span>
                         </label>
                         <label className="flex cursor-pointer items-center gap-2">
                           <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaRequired === false ? 'border-brand-blue' : 'border-slate-300'}`}>
                             {draft.visaRequired === false && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
                           </span>
-                          <input type="radio" className="hidden" checked={draft.visaRequired === false} onChange={() => setDraft(p => ({ ...p, visaRequired: false }))} />
+                          <input type="radio" className="hidden" checked={draft.visaRequired === false} onChange={() => setDraft(p => ({ ...p, visaRequired: false, visaAssessmentRequired: false }))} />
                           <span className={`text-sm font-medium ${draft.visaRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No</span>
                         </label>
                       </div>
@@ -418,25 +434,35 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         </div>
                       </div>
                     )}
+                    {draft.visaRequired && (
+                      <div className="space-y-4">
+                        <label className="block text-sm font-bold text-slate-900">
+                          <span className="mr-1 text-rose-500">*</span>Is visa pre-assessment required?
+                        </label>
+                        <div className="flex gap-8">
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaAssessmentRequired ? 'border-brand-blue' : 'border-slate-300'}`}>
+                              {draft.visaAssessmentRequired && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
+                            </span>
+                            <input type="radio" className="hidden" checked={draft.visaAssessmentRequired === true} onChange={() => setDraft(p => ({ ...p, visaAssessmentRequired: true }))} />
+                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes</span>
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaAssessmentRequired === false ? 'border-brand-blue' : 'border-slate-300'}`}>
+                              {draft.visaAssessmentRequired === false && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
+                            </span>
+                            <input type="radio" className="hidden" checked={draft.visaAssessmentRequired === false} onChange={() => setDraft(p => ({ ...p, visaAssessmentRequired: false }))} />
+                            <span className={`text-sm font-medium ${draft.visaAssessmentRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {draft.visaRequired !== false && (
-                    <div className="mt-auto flex justify-center border-t border-slate-200 pt-6">
-                      <button
-                        onClick={() => {
-                          setSubStep('info');
-                          setActiveSection(mode === 'supplement' ? 'materials' : 'info');
-                        }}
-                        className="h-11 w-48 rounded bg-brand-blue text-sm font-bold text-white"
-                      >
-                        Continue
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
-            <div className={`flex flex-col flex-1 overflow-y-auto ${(mode === 'complete' || draft.visaRequired === false) ? 'bg-white px-5 pt-4' : 'p-5'}`}>
-              <div className={`${(mode === 'complete' || draft.visaRequired === false) ? 'max-w-none pb-6' : 'flex flex-col flex-1 w-full rounded-2xl bg-slate-50 p-10'}`}>
+            <div className={`flex flex-col flex-1 overflow-y-auto ${(mode === 'complete' || !requiresVisaAssessment) ? 'bg-white px-5 pt-4' : 'p-5'}`}>
+              <div className={`${(mode === 'complete' || !requiresVisaAssessment) ? 'max-w-none pb-6' : 'flex flex-col flex-1 w-full rounded-2xl bg-slate-50 p-10'}`}>
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                     {activeSection === 'remarks' ? (
                       <div className="grid grid-cols-1 gap-8 py-6 md:grid-cols-2">
@@ -460,14 +486,16 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                       <>
                     {!(mode === 'complete' && activeSection === 'candidate') && !(mode === 'complete' && activeSection !== 'remarks') && (
                     <p className="text-sm text-slate-500 font-medium">
-                      {draft.visaRequired === false
+                      {!requiresVisaAssessment
                         ? 'Please provide the candidate information required for the normal EOR onboarding place order flow.'
-                        : 'Please select the visa type that the candidate needs to apply for and fill in the corresponding documents.'}
+                        : activeSection === 'candidate'
+                          ? 'Please provide the candidate information required for visa pre-assessment.'
+                          : 'Please select the visa type that the candidate needs to apply for and fill in the corresponding documents.'}
                     </p>
                     )}
                     
                     {/* Level 1 Tabs: Employment / Dependant */}
-                    {draft.visaRequired && !(mode === 'complete' && activeSection !== 'remarks') && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
+                    {requiresVisaAssessment && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
                       <div className="flex gap-8 border-b border-slate-200">
                         {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
                           <button 
@@ -492,17 +520,9 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                       </div>
                     )}
 
-                    {/* Level 2 Tabs: Candidate Info / Visa Info / Evaluation Materials */}
-                    {draft.visaRequired && !(mode === 'complete' && activeSection !== 'remarks') && (
+                    {/* Level 2 Tabs: Visa Info / Evaluation Materials */}
+                    {requiresVisaAssessment && activeSection !== 'candidate' && !(mode === 'complete' && activeSection !== 'remarks') && (
                     <div className="flex gap-8 border-b border-slate-100">
-                      <button 
-                        onClick={() => setActiveSection('candidate')}
-                        className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'candidate' ? 'text-brand-blue' : 'text-slate-400'}`}
-                      >
-                        <AlertCircle size={16} className="text-amber-500" />
-                        Candidate Info
-                        {activeSection === 'candidate' && <motion.div layoutId="level2-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-blue rounded-full" />}
-                      </button>
                       <button 
                         onClick={() => setActiveSection('info')}
                         className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'info' ? 'text-brand-blue' : 'text-slate-400'}`}
@@ -524,7 +544,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
 
                     {/* Content Section */}
                     {activeSection === 'candidate' ? (
-                      (mode === 'complete' || draft.visaRequired === false) ? (
+                      (mode === 'complete' || !requiresVisaAssessment) ? (
                         <CandidateCreationStep
                           draft={draft}
                           setDraft={setDraft}
@@ -629,28 +649,6 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     </>
                     )}
                   </div>
-                  {!(mode === 'complete' || draft.visaRequired === false) && activeSection !== 'remarks' && (
-                    <div className="mt-auto flex justify-center gap-4 border-t border-slate-200 pt-6">
-                      <button
-                        onClick={() => setSubStep('type')}
-                        className="h-11 w-48 rounded border border-slate-200 text-sm font-bold text-slate-600"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (activeSection !== 'remarks') {
-                            setActiveSection('remarks');
-                          } else {
-                            handleComplete();
-                          }
-                        }}
-                        className="h-11 w-48 rounded bg-brand-blue text-sm font-bold text-white"
-                      >
-                        Continue
-                      </button>
-                    </div>
-                  )}
               </div>
             </div>
             )}
@@ -719,7 +717,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               <button
                 onClick={() => {
                   setSubStep('info');
-                  setActiveSection(draft.visaRequired === false ? 'candidate' : mode === 'supplement' ? 'materials' : 'info');
+                  setActiveSection('candidate');
                 }}
                 className="h-12 rounded bg-brand-blue text-sm font-bold text-white"
               >
@@ -732,7 +730,15 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               <button
                 onClick={() => {
                   if (activeSection === 'remarks') {
-                    setActiveSection(draft.visaRequired === false ? 'candidate' : mode === 'supplement' ? 'materials' : 'info');
+                    setActiveSection(requiresVisaAssessment ? 'materials' : 'candidate');
+                    return;
+                  }
+                  if (requiresVisaAssessment && activeSection === 'materials') {
+                    setActiveSection('info');
+                    return;
+                  }
+                  if (requiresVisaAssessment && activeSection === 'info') {
+                    setActiveSection('candidate');
                     return;
                   }
                   if (isExistingTask && mode !== 'supplement') {
@@ -747,6 +753,14 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               </button>
               <button
                 onClick={() => {
+                  if (requiresVisaAssessment && activeSection === 'candidate') {
+                    setActiveSection('info');
+                    return;
+                  }
+                  if (requiresVisaAssessment && activeSection === 'info') {
+                    setActiveSection('materials');
+                    return;
+                  }
                   if (activeSection !== 'remarks') {
                     setActiveSection('remarks');
                     return;
