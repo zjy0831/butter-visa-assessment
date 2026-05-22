@@ -115,7 +115,7 @@ pendingTask = Confirm Visa Assessment
 | 按钮                        | 二次确认     | Remark 必填 | Confirm 后状态变更                                                                                   |
 | :------------------------ | :------- | :-------- | :---------------------------------------------------------------------------------------------- |
 | `Cancel`                  | 无        | —         | 关闭弹窗，Request 状态不变                                                                               |
-| `Return to Client`        | 同当前      | —         | `currentStage = client_supplement`，`pendingTask = Supplement Assessment Materials`；通知 Client 补充 |
+| `Return to Client`        | 同当前      | —         | `pendingTask = Supplement Assessment Materials`；通知 Client 补充 |
 | `Assessment Not Approved` | 有（弹二次确认） | 是         | `requestStatus = Canceled`；通知 Client                                                            |
 | `Assessment Approved`     | 有（弹二次确认） | 否         | `requestStatus = Pending`，`pendingTask = Complete Onboarding Info`                              |
 
@@ -153,9 +153,9 @@ pendingTask = Confirm Visa Assessment
 - AC3：点击 `Process` 后，打开 `SD Confirm Visa Assessment` 弹窗，展示三个 Tab（Candidate Info / Visa Requirements / Remark & Attachment）及说明文案
 - AC4：`Candidate Info` Tab 只读展示客户填写的 9 个预评估候选人字段，不展示 Employment Visa 下原有的 Candidate Info 区块
 - AC5：`Visa Requirements` Tab 展示签证类型、Visa Info、已上传材料和地区材料清单，不重复展示 Candidate Info
-- AC6：SD 点击 `Assessment Approved` → 弹出二次确认弹窗 → Remarks 可为空 → 点击 `Confirm` → Request 进入 `currentStage = onboarding_info_completion`，通知 Client
+- AC6：SD 点击 `Assessment Approved` → 弹出二次确认弹窗 → Remarks 可为空 → 点击 `Confirm` → `pendingTask = Complete Onboarding Info`，通知 Client
 - AC7：SD 点击 `Assessment Not Approved` → 弹出二次确认弹窗 → Remarks 为空时 `Confirm` disabled → 填写原因后点击 `Confirm` → `requestStatus = Closed`，通知 Client
-- AC8：SD 点击 `Return to Client` → 直接执行 → `currentStage = client_supplement`，`currentTask = Supplement Assessment Materials`，通知 Client
+- AC8：SD 点击 `Return to Client` → 直接执行 → `pendingTask = Supplement Assessment Materials`，通知 Client
 - AC9：评估操作完成后，Request Info 历史记录中新增对应节点，展示操作人、时间和评估结论
 
 **场景 – 异常路径（Edge Cases）**

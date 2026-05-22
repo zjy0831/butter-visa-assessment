@@ -674,8 +674,11 @@ const ConfirmOrderModal = ({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 bg-slate-50 px-4 py-3">
+        <div className={`grid gap-3 bg-slate-50 px-4 py-3 ${confirmStep === 'visaType' ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <button onClick={onClose} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold">Cancel</button>
+          {confirmStep === 'visaType' && (
+            <button onClick={() => setConfirmStep('requestInfo')} className="h-10 rounded border border-slate-200 bg-white text-sm font-bold text-slate-600">Back</button>
+          )}
           <button onClick={onReturn} className="h-10 rounded bg-brand-blue text-sm font-bold text-white">Return to Client</button>
           <button
             onClick={() => {

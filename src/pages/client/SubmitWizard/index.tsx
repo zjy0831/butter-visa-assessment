@@ -101,7 +101,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
   const existingRequest = requests.find((request) => request.id === requestId);
   const isExistingTask = Boolean(mode && existingRequest);
   const [step, setStep] = useState<WizardStep>(isExistingTask ? WizardStep.VisaRequirements : WizardStep.ServiceModule);
-  const [subStep, setSubStep] = useState<CollectSubStep>(isExistingTask && mode !== 'supplement' ? 'info' : 'mode');
+  const [subStep, setSubStep] = useState<CollectSubStep>(isExistingTask ? 'info' : 'mode');
   const [activeVisaType, setActiveVisaType] = useState<'Employment' | 'Dependant'>('Employment');
   const [activeSection, setActiveSection] = useState<'candidate' | 'info' | 'materials' | 'remarks'>(mode === 'supplement' ? 'materials' : 'candidate');
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
@@ -925,7 +925,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     setActiveSection(requiresVisaAssessment ? (isBatchMode ? 'info' : 'materials') : 'candidate');
                     return;
                   }
-                  if (isExistingTask && mode !== 'supplement') {
+                  if (isExistingTask) {
                     navigate('/requests');
                     return;
                   }
