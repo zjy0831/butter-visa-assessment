@@ -31,13 +31,36 @@
 
 ***
 
-## 3. 用户故事（User Story）
+## 3. 业务流程（Business Flow）
+
+```mermaid
+flowchart TD
+    A(["SD Return to Client"]) --> B[Supplement Assessment Materials]
+    B --> C[Client 查看 SD 退回原因 补充字段 / 材料]
+    C --> D[重新提交]
+    D -->|SD 再次退回| B
+    D -->|SD Assessment Approved| E
+
+    E([SD Assessment Approved]) --> F[Complete Onboarding Info]
+    F --> G["展示 SD Modification Remarks（若有）"]
+    G --> H[Client 补全剩余 Onboarding 信息 评估阶段字段自动带入]
+    H --> I[Confirm Order]
+
+    I --> J{SD 操作}
+    J -->|Return to Client| K[Client 修正后重提]
+    K --> I
+    J -->|Open Service Order| L([Request 进入 Processing])
+```
+
+***
+
+## 4. 用户故事（User Story）
 
 > 作为 **Client HR / Candidate**，我希望在签证预评估通过后，能在原 Request 中直接补全剩余的正式 Onboarding 信息（评估阶段填写的内容自动带入，无需重填），以便于 SD 在 Confirm Order 时复核完整的候选人信息和签证评估结论，高效完成接单。
 
 ***
 
-## 4. Story AC（验收标准）
+## 5. Story AC（验收标准）
 
 ### 逻辑明细（Details）
 

@@ -32,13 +32,28 @@
 
 ***
 
-## 3. 用户故事（User Story）
+## 3. 业务流程（Business Flow）
+
+```mermaid
+flowchart TD
+    A([SD 打开 Request Info]) --> B[点击 Process 按钮]
+    B --> C[Confirm Visa Assessment 弹窗]
+    C --> D[查看 Candidate Info / Visa Requirements / Remark & Attachment]
+    D --> E{SD 处置结论}
+    E -->|"Return to Client 填写退回原因"| F[Supplement Assessment Materials]
+    E -->|"Assessment Not Approved 填写必填 Remarks"| G[Request 关闭]
+    E -->|"Assessment Approved Remarks 可选"| H[Complete Onboarding Info]
+```
+
+***
+
+## 4. 用户故事（User Story）
 
 > 作为 **SD**，我希望在正式接单前有一个结构化的签证预评估审核入口，能查看候选人资质信息和评估材料，并给出通过、不通过或退回三种处置结论，以便于在早期识别签证风险、避免无效 Request 进入正式接单流程。
 
 ***
 
-## 4. Story AC（验收标准）
+## 5. Story AC（验收标准）
 
 ### 逻辑明细（Details）
 

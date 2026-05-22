@@ -103,7 +103,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
   const [step, setStep] = useState<WizardStep>(isExistingTask ? WizardStep.VisaRequirements : WizardStep.ServiceModule);
   const [subStep, setSubStep] = useState<CollectSubStep>(isExistingTask ? 'info' : 'mode');
   const [activeVisaType, setActiveVisaType] = useState<'Employment' | 'Dependant'>('Employment');
-  const [activeSection, setActiveSection] = useState<'candidate' | 'info' | 'materials' | 'remarks'>(mode === 'supplement' ? 'materials' : 'candidate');
+  const [activeSection, setActiveSection] = useState<'candidate' | 'info' | 'materials' | 'remarks' | 'checklist' | 'dependentInfo'>(mode === 'supplement' ? 'materials' : 'candidate');
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [candidateAddMode, setCandidateAddMode] = useState<CandidateAddMode>(isExistingTask ? 'single' : null);
@@ -678,8 +678,8 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     {requiresVisaAssessment && !isBatchMode && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
                       <div className="flex gap-8 border-b border-slate-200">
                         {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
-                          <button 
-                            onClick={() => setActiveVisaType('Employment')}
+                          <button
+                            onClick={() => { setActiveVisaType('Employment'); if (activeSection === 'dependentInfo') setActiveSection('info'); }}
                             className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeVisaType === 'Employment' ? 'text-brand-blue' : 'text-slate-400'}`}
                           >
                             <AlertCircle size={16} className="text-amber-500" />
@@ -688,8 +688,8 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                           </button>
                         )}
                         {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Dependant') && (
-                          <button 
-                            onClick={() => setActiveVisaType('Dependant')}
+                          <button
+                            onClick={() => { setActiveVisaType('Dependant'); if (activeSection === 'info' || activeSection === 'materials' || activeSection === 'checklist') setActiveSection('dependentInfo'); }}
                             className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeVisaType === 'Dependant' ? 'text-brand-blue' : 'text-slate-400'}`}
                           >
                             <AlertCircle size={16} className="text-amber-500" />
@@ -700,10 +700,20 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                       </div>
                     )}
 
-                    {/* Level 2 Tabs: Visa Info / Evaluation Materials */}
+                    {/* Level 2 Tabs */}
                     {requiresVisaAssessment && !isBatchMode && activeSection !== 'candidate' && !(mode === 'complete' && activeSection !== 'remarks') && (
                     <div className="flex gap-8 border-b border-slate-100">
-                      <button 
+                      {activeVisaType === 'Dependant' && (
+                        <button
+                          onClick={() => setActiveSection('dependentInfo')}
+                          className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'dependentInfo' ? 'text-brand-blue' : 'text-slate-400'}`}
+                        >
+                          <AlertCircle size={16} className="text-amber-500" />
+                          Dependent Info
+                          {activeSection === 'dependentInfo' && <motion.div layoutId="level2-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-blue rounded-full" />}
+                        </button>
+                      )}
+                      <button
                         onClick={() => setActiveSection('info')}
                         className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'info' ? 'text-brand-blue' : 'text-slate-400'}`}
                       >
@@ -711,13 +721,21 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         Visa Info
                         {activeSection === 'info' && <motion.div layoutId="level2-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-blue rounded-full" />}
                       </button>
-                      <button 
+                      <button
                         onClick={() => setActiveSection('materials')}
                         className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'materials' ? 'text-brand-blue' : 'text-slate-400'}`}
                       >
                         <AlertCircle size={16} className="text-amber-500" />
                         Evaluation Materials
                         {activeSection === 'materials' && <motion.div layoutId="level2-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-blue rounded-full" />}
+                      </button>
+                      <button
+                        onClick={() => setActiveSection('checklist')}
+                        className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all relative ${activeSection === 'checklist' ? 'text-brand-blue' : 'text-slate-400'}`}
+                      >
+                        <AlertCircle size={16} className="text-amber-500" />
+                        Confirm Document Checklist
+                        {activeSection === 'checklist' && <motion.div layoutId="level2-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-blue rounded-full" />}
                       </button>
                     </div>
                     )}
@@ -763,11 +781,26 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         setActiveSection={setActiveSection}
                         handleUpload={handleUpload}
                       />
+                    ) : activeSection === 'dependentInfo' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 py-6">
+                        <FormField label="Dependent Name" value="" onChange={() => {}} required />
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-900 block"><span className="text-rose-500 mr-1">*</span>Relationship</label>
+                          <select className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all">
+                            <option>Please select</option>
+                            <option>Spouse</option>
+                            <option>Child</option>
+                            <option>Parent</option>
+                          </select>
+                        </div>
+                        <FormField label="Nationality / Citizenship" value="" onChange={() => {}} required />
+                        <FormField label="Current Residence" value="" onChange={() => {}} required />
+                      </div>
                     ) : activeSection === 'info' ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 py-6">
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-slate-900 block">
-                            <span className="text-rose-500 mr-1">*</span>{activeVisaType} Visa Type
+                            <span className="text-rose-500 mr-1">*</span>{activeVisaType === 'Dependant' ? 'Dependent' : 'Employment'} Visa Type
                           </label>
                           <select className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all">
                             <option>Please select</option>
@@ -812,7 +845,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                           </select>
                         </div>
                       </div>
-                    ) : (
+                    ) : activeSection === 'materials' ? (
                       <div className="py-6 overflow-hidden">
                         <table className="w-full text-sm">
                           <tbody className="divide-y divide-slate-100 border-t border-slate-100">
@@ -837,7 +870,38 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                           </tbody>
                         </table>
                       </div>
-                    )}
+                    ) : activeSection === 'checklist' ? (
+                      <div className="py-6 overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="border-b border-slate-100">
+                            <tr className="text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+                              <th className="pb-3 pr-4">Evaluation Material</th>
+                              <th className="pb-3 pr-4">Required</th>
+                              <th className="pb-3 pr-4">Upload Status</th>
+                              <th className="pb-3 text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {draft.documents?.map(doc => (
+                              <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-4 pr-4 font-bold text-slate-900">{doc.name}</td>
+                                <td className="py-4 pr-4">
+                                  <span className={`text-xs font-bold ${doc.isRequired ? 'text-rose-500' : 'text-slate-400'}`}>
+                                    {doc.isRequired ? 'Required' : 'Optional'}
+                                  </span>
+                                </td>
+                                <td className={`py-4 pr-4 text-xs font-black uppercase tracking-tight ${doc.status === 'Uploaded' ? 'text-emerald-600' : 'text-slate-300'}`}>
+                                  {doc.status}
+                                </td>
+                                <td className="py-4 text-right">
+                                  <button onClick={() => handleUpload(doc.id)} className="text-brand-blue font-bold px-4 py-2 hover:bg-blue-50 rounded-lg text-xs transition-colors">UPLOAD</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
                     </>
                     )}
                   </div>
@@ -922,7 +986,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
               <button
                 onClick={() => {
                   if (activeSection === 'remarks') {
-                    setActiveSection(requiresVisaAssessment ? (isBatchMode ? 'info' : 'materials') : 'candidate');
+                    setActiveSection(requiresVisaAssessment ? (isBatchMode ? 'info' : 'checklist') : 'candidate');
                     return;
                   }
                   if (isExistingTask) {
@@ -1056,32 +1120,32 @@ const AddCandidateModeStep = ({
   onSelect: (mode: CandidateAddMode) => void;
 }) => (
   <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-10">
-    <div className="mb-12 text-center">
-      <h2 className="text-3xl font-semibold text-slate-900">How would you like to add candidates?</h2>
-      <p className="mt-4 text-base text-slate-400">Choose the method that best fits your needs.</p>
+    <div className="mb-10 text-center">
+      <h2 className="text-2xl font-semibold text-slate-900">How would you like to add candidates?</h2>
+      <p className="mt-3 text-sm text-slate-400">Choose the method that best fits your needs.</p>
     </div>
-    <div className="grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
+    <div className="grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
       <button
         onClick={() => onSelect('single')}
-        className={`rounded-2xl border-2 bg-white p-10 text-left transition-all ${selectedMode === 'single' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
+        className={`rounded-2xl border-2 bg-white p-8 text-left transition-all ${selectedMode === 'single' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
       >
-        <div className="mb-9 flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100 text-brand-blue">
-          <UserPlus size={42} />
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-brand-blue">
+          <UserPlus size={28} />
         </div>
-        <h3 className="text-3xl font-semibold text-slate-900">Add one new hire</h3>
-        <p className="mt-5 max-w-md text-lg leading-8 text-slate-400">
+        <h3 className="text-lg font-semibold text-slate-900">Add one new hire</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
           Create a Request for one candidate by entering the required information step by step.
         </p>
       </button>
       <button
         onClick={() => onSelect('batch')}
-        className={`rounded-2xl border-2 bg-white p-10 text-left transition-all ${selectedMode === 'batch' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
+        className={`rounded-2xl border-2 bg-white p-8 text-left transition-all ${selectedMode === 'batch' ? 'border-brand-blue bg-blue-50/40' : 'border-slate-200 hover:border-slate-300'}`}
       >
-        <div className="mb-9 flex h-20 w-20 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-          <Users size={42} />
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+          <Users size={28} />
         </div>
-        <h3 className="text-3xl font-semibold text-slate-900">Add multiple new hires</h3>
-        <p className="mt-5 max-w-md text-lg leading-8 text-slate-400">
+        <h3 className="text-lg font-semibold text-slate-900">Add multiple new hires</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
           Create Request for multiple candidates at once. Supports Excel import or selection from the talent pool for efficient processing.
         </p>
       </button>
@@ -1213,7 +1277,7 @@ const BatchVisaRequirements = ({
       <table className="w-full min-w-[1800px] text-sm">
         <thead className="bg-slate-100 text-left text-slate-700">
           <tr>
-            {['Name', 'Which type of visa do you want to apply for?', 'Employment Visa Type', 'Dependant Visa Type', 'Within the Issuing Country/Region?', 'Country / Region at the time of Visa application', 'Departure Country / Region before entering Visa Location', 'Evaluation Materials', 'Operation'].map((header) => (
+            {['Name', 'Which type of visa do you want to apply for?', 'Employment Visa Type', 'Within the Issuing Country/Region?', 'Country / Region at the time of Visa application', 'Departure Country / Region before entering Visa Location', 'Evaluation Materials', 'Operation'].map((header) => (
               <th key={header} className={`px-4 py-4 font-bold ${header === 'Operation' ? 'sticky right-0 z-10 bg-slate-100 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]' : ''}`}>{header}</th>
             ))}
           </tr>
@@ -1234,13 +1298,6 @@ const BatchVisaRequirements = ({
                   value={candidate.employmentVisaType}
                   options={['-', 'Employment Pass', 'S Pass', 'Work Permit']}
                   onChange={(value) => onUpdate(candidate.id, 'employmentVisaType', value)}
-                />
-              </td>
-              <td className="px-4 py-4">
-                <TableSelect
-                  value={candidate.dependantVisaType}
-                  options={['-', 'Dependent Pass', 'Long Term Visit Pass', 'Dependent Permit']}
-                  onChange={(value) => onUpdate(candidate.id, 'dependantVisaType', value)}
                 />
               </td>
               <td className="px-4 py-4">

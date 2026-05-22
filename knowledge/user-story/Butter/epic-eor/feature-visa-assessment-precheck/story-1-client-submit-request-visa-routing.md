@@ -33,13 +33,41 @@
 
 ***
 
-## 3. 用户故事（User Story）
+## 3. 业务流程（Business Flow）
+
+```mermaid
+flowchart TD
+    A([Client Submit Request]) --> B[Service Module]
+    B --> C[Service Location & Project]
+    C --> D[Collect Work Visa Requirements]
+    D --> E{Add Candidate Mode}
+
+    E -->|Add one new hire| F{Is a visa application required?}
+    E -->|Add multiple new hires| F
+
+    F -->|No, candidate is local or already authorized ── 分支 A| G[Provide Candidate Information]
+    F -->|Yes, candidate needs visa support| H{Is visa pre-assessment required?}
+    H -->|No, already assessed offline ── 分支 B| G
+    H -->|Yes, need online assessment ── 分支 C| I[Basic Candidate Info]
+
+    I --> J[Visa Requirements]
+    G --> K[Other Remarks & Attachment]
+    J --> K
+    K --> L([Submit])
+
+    L -->|分支 A / B| M["Pending Task:Confirm Order"]
+    L -->|分支 C| N["Pending Task:Confirm Visa Assessment"]
+```
+
+***
+
+## 4. 用户故事（User Story）
 
 > 作为 **Client HR**，我希望在创建 EOR Onboarding Request 时先完成签证需求判断，并在需要预评估时只填写精简的评估信息提交，以便于 SD 在正式接单前先完成签证资格审核，避免为签证资格不确定的候选人填写无效的完整入职信息。
 
 ***
 
-## 4. Story AC（验收标准）
+## 5. Story AC（验收标准）
 
 ### 逻辑明细（Details）
 
@@ -78,15 +106,15 @@
 
 ***
 
-| 步骤                         | 字段                                             | 类型                                                                                     | 必填 | 展示条件                        | 说明                                                                                  |
-| :------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------- | :- | :-------------------------- | :---------------------------------------------------------------------------------- |
-| Visa Application Type      | `Is a visa application required?`              | Radio· Yes, candidate needs visa support· No, candidate is local or already authorized | 是  | 始终                          | 判断候选人是否需要办理签证                                                                       |
-| Visa Application Type      | `Which type of visa do you need to apply for?` | Radio· Employment Visa· Dependant Visa· Employment + Dependant                         | 是  | `visa required = Yes`（单人模式） | 签证申请类型；批量模式下不展示此字段，改在候选人维度的 Visa Requirements 列表填写                                  |
-| Visa Application Type      | `Is visa pre-assessment required?`             | Radio· Yes, need online assessment· No, already assessed offline                       | 是  | `visa required = Yes`       | 是否需要走线上预评估                                                                          |
-| Basic Candidate Info       | Basic Candidate Info 字段集                       | —                                                                                      | —  | 分支 C                        | 字段由底层 Attribute 配置中标记 `Used for Visa Assessment = true` 的字段动态渲染，不在本卡硬编码。详见 Story 5。 |
-| Visa Requirements          | Visa Requirements 字段集                          | —                                                                                      | —  | 分支 C                        | 沿用当前签证预评估表单字段（Visa Info、Evaluation Materials 等），无变更。                                |
-| Other Remarks & Attachment | Other Remarks                                  | Text                                                                                   | 否  | 始终（三条分支均有）                  | Client 补充说明                                                                         |
-| Other Remarks & Attachment | Attachment                                     | File Upload                                                                            | 否  | 始终（三条分支均有）                  | Client 上传补充附件                                                                       |
+| 步骤                         | 字段                                             | 类型                                                                                     | 必填 | 展示条件                        | 说明                                                                          |
+| :------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------- | :- | :-------------------------- | :-------------------------------------------------------------------------- |
+| Visa Application Type      | `Is a visa application required?`              | Radio· Yes, candidate needs visa support· No, candidate is local or already authorized | 是  | 始终                          | 判断候选人是否需要办理签证                                                               |
+| Visa Application Type      | `Which type of visa do you need to apply for?` | Radio· Employment Visa· Dependant Visa· Employment + Dependant                         | 是  | `visa required = Yes`（单人模式） | 签证申请类型；批量模式下不展示此字段，改在候选人维度的 Visa Requirements 列表填写                          |
+| Visa Application Type      | `Is visa pre-assessment required?`             | Radio· Yes, need online assessment· No, already assessed offline                       | 是  | `visa required = Yes`       | 是否需要走线上预评估                                                                  |
+| Basic Candidate Info       | Basic Candidate Info 字段集                       | —                                                                                      | —  | 分支 C                        | 字段由底层 Attribute 配置中标记 `Used for Visa Assessment = true` 的字段动态渲染。详见 Story 5。 |
+| Visa Requirements          | Visa Requirements 字段集                          | —                                                                                      | —  | 分支 C                        | 沿用当前签证预评估表单字段（Visa Info、Evaluation Materials 等），无变更。                        |
+| Other Remarks & Attachment | Other Remarks                                  | Text                                                                                   | 否  | 始终（三条分支均有）                  | Client 补充说明                                                                 |
+| Other Remarks & Attachment | Attachment                                     | File Upload                                                                            | 否  | 始终（三条分支均有）                  | Client 上传补充附件                                                               |
 
 #### (3) 规则逻辑（核心）
 
@@ -117,11 +145,13 @@
 Employment Visa（当 Visa Application Type 含 Employment）
   └─ Visa Info（Employment Visa Type / Within the Issuing Country/Region? / 申请地 / 出发地）
   └─ Evaluation Materials
+  └─ Confirm Document Checklist
 
 Dependant Visa（当 Visa Application Type 含 Dependant）
-  └─ Dependant Info
-  └─ Visa Info（Dependant Visa Type）
+  └─ Dependent Info（Dependent Name / Relationship / Nationality / Current Residence）
+  └─ Visa Info（Dependent Visa Type / Within the Issuing Country/Region? / 申请地 / 出发地）
   └─ Evaluation Materials
+  └─ Confirm Document Checklist
 ```
 
 **字段联动**：
