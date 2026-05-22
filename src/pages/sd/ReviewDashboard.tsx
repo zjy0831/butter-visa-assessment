@@ -490,7 +490,7 @@ const AssessmentModal = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-10 py-8">
       <div className="flex max-h-[86vh] w-full max-w-[1700px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
-        <ModalHeader title="SD Confirm Visa Assessment" onClose={onClose} />
+        <ModalHeader title="Confirm Visa Assessment" onClose={onClose} />
         <div className="mx-5 mb-5">
           <p className="mb-5 text-sm font-medium leading-7 text-slate-500">
             This is the candidate basic information and visa pre-assessment material submitted by the client. Please assess whether the candidate is eligible for visa application. If there are any issues, you can edit directly or return it to the client for correction.
@@ -706,7 +706,7 @@ const ConfirmOrderVisaSummary = ({ request }: { request: AssessmentRequest }) =>
     <ReadOnlyGrid
       rows={[
         ['Is a visa application required?', 'YES'],
-        ['Visa Application Type', formatVisaApplicationType(request.visaApplyType)],
+        ['Which type of visa do you need to apply for?', formatVisaApplicationType(request.visaApplyType)],
         ['Is visa pre-assessment required?', 'No'],
       ]}
     />
@@ -899,7 +899,7 @@ const VisaRequirementView = ({
     <div className="pt-8">
       <div className="grid grid-cols-2 gap-x-24 gap-y-7 text-sm">
         <ReadOnlyField label="Is a visa application required?" value={request.visaRequired === false ? 'NO' : 'YES'} />
-        <ReadOnlyField label="Visa Application Type" value={formatVisaApplicationType(request.visaApplyType)} />
+        <ReadOnlyField label="Which type of visa do you need to apply for?" value={formatVisaApplicationType(request.visaApplyType)} />
         {request.visaRequired && (
           <ReadOnlyField label="Is visa pre-assessment required?" value={request.visaAssessmentRequired ? 'Yes' : 'No'} />
         )}
