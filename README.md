@@ -1,20 +1,35 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Butter Visa Assessment
 
-# Run and deploy your AI Studio app
+## 本地启动
 
-This contains everything you need to run your app locally.
+### 环境要求
 
-View your app in AI Studio: https://ai.studio/apps/77d2e5e4-a4e8-4e5c-8714-ecdaf129992c
+- Node.js 18 或更高版本
+- npm
 
-## Run Locally
+### 安装依赖
 
-**Prerequisites:**  Node.js
+```bash
+npm install
+```
 
+### 启动开发服务
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm run dev
+```
+
+开发服务默认运行在：
+
+```text
+http://localhost:3000
+```
+
+## 常用命令
+
+```bash
+npm run dev      # 启动本地开发服务
+npm run build    # 构建生产版本
+npm run preview  # 本地预览构建结果
+npm run lint     # TypeScript 类型检查
+```
