@@ -83,7 +83,11 @@ export interface AssessmentRequest {
   onboardingRequestId?: string;
   visaRequired?: boolean;
   visaAssessmentRequired?: boolean;
-  visaApplyType?: 'Employment' | 'Dependant' | 'Both';
+  visaApplyType?: 'Employment' | 'Both';
+  expectedStayDuration?: string;
+  expectedStayUnit?: 'Year' | 'Month' | 'Day';
+  longTermResidencyCountry?: string;
+  longTermResidencyScan?: string;
   returnRemarks?: string;
   approvalRemarks?: string;
   assessmentRejectRemarks?: string;

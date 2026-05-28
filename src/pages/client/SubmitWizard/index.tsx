@@ -135,12 +135,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
   const approvalRemarkText = existingRequest?.approvalRemarks || draft.approvalRemarks;
 
   useEffect(() => {
-    // If only Dependant is selected, set it as active
-    if (draft.visaApplyType === 'Dependant') {
-      setActiveVisaType('Dependant');
-    } else {
-      setActiveVisaType('Employment');
-    }
+    setActiveVisaType('Employment');
   }, [draft.visaApplyType, subStep]);
 
   useEffect(() => {
@@ -581,7 +576,6 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         <div className="flex flex-wrap gap-8">
                           {[
                             { id: 'Employment', label: 'Employment Visa' },
-                            { id: 'Dependant', label: 'Dependant Visa' },
                             { id: 'Both', label: 'Employment + Dependant' }
                           ].map((type) => (
                             <label key={type.id} className="flex cursor-pointer items-center gap-2">
@@ -675,7 +669,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                     )}
                     
                     {/* Level 1 Tabs: Employment / Dependant */}
-                    {requiresVisaAssessment && !isBatchMode && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment' || draft.visaApplyType === 'Dependant') && (
+                    {requiresVisaAssessment && !isBatchMode && !(mode === 'complete' && activeSection !== 'remarks') && activeSection !== 'candidate' && (draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
                       <div className="flex gap-8 border-b border-slate-200">
                         {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
                           <button
@@ -822,7 +816,7 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-slate-900 flex items-center gap-1">
-                            <span className="text-rose-500 mr-1">*</span>Country / Region at the time of Visa application
+                            {activeVisaType === 'Employment' && <span className="text-rose-500 mr-1">*</span>}Country / Region at the time of Visa application
                             <Info size={14} className="text-brand-blue" />
                           </label>
                           <select className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all">
@@ -832,18 +826,75 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                             <option>Hong Kong</option>
                           </select>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-slate-900 flex items-center gap-1">
-                            <span className="text-rose-500 mr-1">*</span>Departure Country / Region before entering Visa Location
-                            <Info size={14} className="text-brand-blue" />
-                          </label>
-                          <select className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all">
-                            <option>Please select</option>
-                            <option>China</option>
-                            <option>Singapore</option>
-                            <option>Hong Kong</option>
-                          </select>
-                        </div>
+                        {activeVisaType === 'Employment' && (
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-slate-900 block">
+                                <span className="text-rose-500 mr-1">*</span>Expected Stay / Work Duration
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={draft.expectedStayDuration || ''}
+                                  onChange={(e) => setDraft(p => ({ ...p, expectedStayDuration: e.target.value }))}
+                                  placeholder="Please input"
+                                  className="flex-1 h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all"
+                                />
+                                <select
+                                  value={draft.expectedStayUnit || 'Year'}
+                                  onChange={(e) => setDraft(p => ({ ...p, expectedStayUnit: e.target.value as 'Year' | 'Month' | 'Day' }))}
+                                  className="w-28 h-11 bg-white border border-slate-200 rounded-xl px-3 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all"
+                                >
+                                  <option value="Year">Year</option>
+                                  <option value="Month">Month</option>
+                                  <option value="Day">Day</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-slate-900 block">
+                                Long-term Residency in Any Country?
+                              </label>
+                              <select
+                                value={draft.longTermResidencyCountry || ''}
+                                onChange={(e) => setDraft(p => ({ ...p, longTermResidencyCountry: e.target.value, longTermResidencyScan: e.target.value ? p.longTermResidencyScan : undefined }))}
+                                className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:border-brand-blue transition-all"
+                              >
+                                <option value="">Please select (optional)</option>
+                                <option>China</option>
+                                <option>Singapore</option>
+                                <option>Hong Kong</option>
+                                <option>United States</option>
+                                <option>United Kingdom</option>
+                                <option>Canada</option>
+                                <option>Australia</option>
+                                <option>Japan</option>
+                              </select>
+                            </div>
+                            {draft.longTermResidencyCountry && (
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-900 block">
+                                  <span className="text-rose-500 mr-1">*</span>Upload Residency / Work Permit / PR Document Scan
+                                </label>
+                                <label className="flex items-center gap-3 w-full h-11 bg-white border border-dashed border-slate-300 rounded-xl px-4 cursor-pointer hover:border-brand-blue hover:bg-blue-50/30 transition-all">
+                                  <Upload size={16} className="text-brand-blue shrink-0" />
+                                  <span className="text-sm font-medium text-brand-blue truncate">
+                                    {draft.longTermResidencyScan ? draft.longTermResidencyScan : 'Click to upload clear scan'}
+                                  </span>
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) setDraft(p => ({ ...p, longTermResidencyScan: file.name }));
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     ) : activeSection === 'materials' ? (
                       <div className="py-6 overflow-hidden">
@@ -1277,7 +1328,7 @@ const BatchVisaRequirements = ({
       <table className="w-full min-w-[1800px] text-sm">
         <thead className="bg-slate-100 text-left text-slate-700">
           <tr>
-            {['Name', 'Which type of visa do you want to apply for?', 'Employment Visa Type', 'Within the Issuing Country/Region?', 'Country / Region at the time of Visa application', 'Departure Country / Region before entering Visa Location', 'Evaluation Materials', 'Operation'].map((header) => (
+            {['Name', 'Which type of visa do you want to apply for?', 'Employment Visa Type', 'Within the Issuing Country/Region?', 'Country / Region at the time of Visa application', 'Evaluation Materials', 'Operation'].map((header) => (
               <th key={header} className={`px-4 py-4 font-bold ${header === 'Operation' ? 'sticky right-0 z-10 bg-slate-100 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]' : ''}`}>{header}</th>
             ))}
           </tr>
@@ -1289,7 +1340,7 @@ const BatchVisaRequirements = ({
               <td className="px-4 py-4">
                 <TableSelect
                   value={candidate.visaApplicationType}
-                  options={['Employment Visa', 'Dependant Visa', 'Employment + Dependant']}
+                  options={['Employment Visa', 'Employment + Dependant']}
                   onChange={(value) => onUpdate(candidate.id, 'visaApplicationType', value)}
                 />
               </td>
@@ -1309,9 +1360,6 @@ const BatchVisaRequirements = ({
               </td>
               <td className="px-4 py-4">
                 <TableInput value={candidate.applicationCountry} onChange={(value) => onUpdate(candidate.id, 'applicationCountry', value)} />
-              </td>
-              <td className="px-4 py-4">
-                <TableInput value={candidate.departureCountry} onChange={(value) => onUpdate(candidate.id, 'departureCountry', value)} />
               </td>
               <td className="px-4 py-4">
                 <span className={`font-bold ${candidate.materialsStatus === 'Uploaded' ? 'text-emerald-600' : 'text-amber-600'}`}>{candidate.materialsStatus}</span>
@@ -1459,7 +1507,6 @@ const CompleteWorkVisaStep = ({
             <div className="flex flex-wrap gap-10">
               {[
                 { id: 'Employment', label: 'Employment Visa' },
-                { id: 'Dependant', label: 'Dependant Visa' },
                 { id: 'Both', label: 'Employment + Dependant' }
               ].map((type) => (
                 <label key={type.id} className="flex cursor-pointer items-center gap-3">
@@ -1533,7 +1580,15 @@ const CompleteWorkVisaStep = ({
               <FormField label={`${activeVisaType} Visa Type`} value={activeVisaType === 'Employment' ? 'Employment Pass' : 'Dependent Pass'} onChange={() => undefined} required />
               <FormField label="Within the Issuing Country/Region?" value="Out of Country" onChange={() => undefined} required />
               <FormField label="Country / Region at the time of Visa application" value="New Zealand" onChange={() => undefined} required />
-              <FormField label="Departure Country / Region before entering Visa Location" value="New Zealand" onChange={() => undefined} required />
+              {activeVisaType === 'Employment' && (
+                <>
+                  <FormField label="Expected Stay / Work Duration" value={`${draft.expectedStayDuration || ''} ${draft.expectedStayUnit || 'Year'}`} onChange={() => undefined} required />
+                  <FormField label="Long-term Residency Country" value={draft.longTermResidencyCountry || '—'} onChange={() => undefined} />
+                  {draft.longTermResidencyCountry && (
+                    <FormField label="Residency Document Scan" value={draft.longTermResidencyScan || 'Not uploaded'} onChange={() => undefined} required />
+                  )}
+                </>
+              )}
             </div>
           ) : (
             <div className="overflow-hidden pt-2">

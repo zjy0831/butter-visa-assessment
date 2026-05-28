@@ -42,14 +42,15 @@ const employmentVisaInfo: [string, string][] = [
   ['Employment Visa Type', 'Employment Pass'],
   ['Within the Issuing Country/Region?', 'Out of Country'],
   ['Country / Region at the time of Visa application', 'New Zealand'],
-  ['Departure Country / Region before entering Visa Location', 'New Zealand'],
+  ['Expected Stay / Work Duration', '2 Year'],
+  ['Long-term Residency Country', 'United States'],
+  ['Residency Document Scan', 'pr_document_scan.pdf'],
 ];
 
 const dependentVisaInfo: [string, string][] = [
   ['Dependent Visa Type', 'Dependent Pass'],
   ['Relationship to Candidate', 'Spouse'],
   ['Country / Region at the time of Visa application', 'New Zealand'],
-  ['Departure Country / Region before entering Visa Location', 'New Zealand'],
 ];
 
 const dependentInfo: [string, string][] = [
