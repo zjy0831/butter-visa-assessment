@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle2, 
-  Clock, 
-  ChevronRight, 
-  Search, 
+import {
+  CheckCircle2,
+  Clock,
+  ChevronRight,
+  Search,
   ArrowRight,
   Info,
   ShieldCheck,
@@ -13,11 +13,13 @@ import {
   Users,
   UserPlus,
   Plus,
-  Download
+  Download,
+  Paperclip,
+  X,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { WizardStep, AssessmentRequest, Status } from '../../../types.ts';
+import { WizardStep, AssessmentRequest, Status, ScaffoldedIdentityRecord } from '../../../types.ts';
 import { MODULES, PROJECTS, LOCATION_DOCS } from '../../../constants.ts';
 import { FormField } from '../../../components/UI/FormField.tsx';
 
@@ -128,6 +130,8 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
     visaApplyType: existingRequest?.visaApplyType || 'Both',
     approvalRemarks: existingRequest?.approvalRemarks,
     assessmentRejectRemarks: existingRequest?.assessmentRejectRemarks,
+    passportScanPreAssessment: existingRequest?.passportScanPreAssessment,
+    scaffoldedIdentityRecord: existingRequest?.scaffoldedIdentityRecord,
   });
 
   const requiresVisaAssessment = draft.visaRequired === true && draft.visaAssessmentRequired === true;
@@ -763,6 +767,27 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         <FormField label="Proposed Monthly Salary" value={draft.salary || ''} onChange={(v) => setDraft(p => ({ ...p, salary: v }))} required />
                         <FormField label="Highest Education" value={draft.degree || ''} onChange={(v) => setDraft(p => ({ ...p, degree: v }))} required />
                         <FormField label="Expected Onboarding" type="date" value={draft.expectedStartDate || ''} onChange={(v) => setDraft(p => ({ ...p, expectedStartDate: v }))} required />
+                        <div className="col-span-2 space-y-2">
+                          <label className="block text-sm font-bold text-slate-900">
+                            Passport Scan
+                            <span className="ml-2 text-xs font-normal text-slate-400">Upload passport scan — SD will use this to verify identity for visa eligibility. No need to fill in the full identity record at this stage.</span>
+                          </label>
+                          <label className="flex items-center gap-3 w-full h-11 bg-white border border-dashed border-slate-300 rounded-xl px-4 cursor-pointer hover:border-brand-blue hover:bg-blue-50/30 transition-all">
+                            <Upload size={16} className="text-brand-blue shrink-0" />
+                            <span className="text-sm font-medium text-brand-blue truncate">
+                              {draft.passportScanPreAssessment ? draft.passportScanPreAssessment : 'Click to upload passport scan (PDF / image)'}
+                            </span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setDraft(p => ({ ...p, passportScanPreAssessment: file.name }));
+                              }}
+                            />
+                          </label>
+                        </div>
                       </div>
                       )
                     ) : mode === 'complete' && activeSection !== 'remarks' ? (
@@ -770,7 +795,6 @@ export const SubmitWizard = ({ requests = [], onSubmit, onUpdate }: SubmitWizard
                         draft={draft}
                         activeVisaType={activeVisaType}
                         activeSection={activeSection}
-                        setDraft={setDraft}
                         setActiveVisaType={setActiveVisaType}
                         setActiveSection={setActiveSection}
                         handleUpload={handleUpload}
@@ -1103,7 +1127,7 @@ const CandidateCreationStep = ({
   ];
 
   return (
-    <div className="h-full min-h-[660px]">
+    <div className="min-h-[660px]">
       <div className="mb-7 flex items-center justify-between">
         <h3 className="text-xl font-bold text-slate-900">Create New Candidate</h3>
       </div>
@@ -1123,28 +1147,28 @@ const CandidateCreationStep = ({
           </div>
         </aside>
 
-        <section className="relative overflow-hidden rounded-lg bg-slate-50 p-6">
-          <div className="absolute bottom-28 right-4 top-8 w-1.5 rounded-full bg-slate-200">
-            <div className="h-24 rounded-full bg-slate-400/50" />
+        <section className="overflow-y-auto rounded-lg bg-slate-50 p-6" style={{ maxHeight: '600px' }}>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-8">
+            <FormField label="First Name" value="" onChange={() => undefined} />
+            <FormField label="Middle Name" value="" onChange={() => undefined} />
+            <FormField label="Last Name" value="" onChange={() => undefined} />
+            <div />
+            <FormField label="Employee Name" value={draft.candidateName || ''} onChange={(value) => setDraft((prev) => ({ ...prev, candidateName: value }))} required />
+            <FormField label="Want To Be Called As" value="Mr" onChange={() => undefined} required />
+            <FormField label="Gender" value="Male" onChange={() => undefined} required />
+            <FormField label="Birth Date" type="date" value="" onChange={() => undefined} />
+            <FormField label="Join Date" type="date" value={draft.expectedStartDate || ''} onChange={(value) => setDraft((prev) => ({ ...prev, expectedStartDate: value }))} required />
+            <FormField label="Last Working Date" type="date" value="" onChange={() => undefined} />
+            <FormField label="Login Access Expires" type="date" value="" onChange={() => undefined} />
+            <FormField label="Job Title(EN)" value={draft.jobTitle || ''} onChange={(value) => setDraft((prev) => ({ ...prev, jobTitle: value }))} />
+            <FormField label="Email Address" value={draft.candidateEmail || ''} onChange={(value) => setDraft((prev) => ({ ...prev, candidateEmail: value }))} required />
+            <FormField label="Nationality / Citizenship" value={draft.nationality || ''} onChange={(value) => setDraft((prev) => ({ ...prev, nationality: value }))} required />
           </div>
-          <div className="max-h-[560px] overflow-hidden pr-9">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-8">
-              <FormField label="First Name" value="" onChange={() => undefined} />
-              <FormField label="Middle Name" value="" onChange={() => undefined} />
-              <FormField label="Last Name" value="" onChange={() => undefined} />
-              <div />
-              <FormField label="Employee Name" value={draft.candidateName || ''} onChange={(value) => setDraft((prev) => ({ ...prev, candidateName: value }))} required />
-              <FormField label="Want To Be Called As" value="Mr" onChange={() => undefined} required />
-              <FormField label="Gender" value="Male" onChange={() => undefined} required />
-              <FormField label="Birth Date" type="date" value="" onChange={() => undefined} />
-              <FormField label="Join Date" type="date" value={draft.expectedStartDate || ''} onChange={(value) => setDraft((prev) => ({ ...prev, expectedStartDate: value }))} required />
-              <FormField label="Last Working Date" type="date" value="" onChange={() => undefined} />
-              <FormField label="Login Access Expires" type="date" value="" onChange={() => undefined} />
-              <FormField label="Job Title(EN)" value={draft.jobTitle || ''} onChange={(value) => setDraft((prev) => ({ ...prev, jobTitle: value }))} />
-              <FormField label="Email Address" value={draft.candidateEmail || ''} onChange={(value) => setDraft((prev) => ({ ...prev, candidateEmail: value }))} required />
-              <FormField label="Nationality / Citizenship" value={draft.nationality || ''} onChange={(value) => setDraft((prev) => ({ ...prev, nationality: value }))} required />
-            </div>
-          </div>
+
+          <IdentityRecordSection
+            scaffolded={draft.scaffoldedIdentityRecord}
+            onUpdate={(updated) => setDraft((prev) => ({ ...prev, scaffoldedIdentityRecord: updated }))}
+          />
         </section>
 
         <aside className="flex flex-col items-center justify-center bg-white text-center text-slate-400">
@@ -1455,11 +1479,186 @@ const TableInput = ({
   />
 );
 
+const IdentityRecordEditModal = ({
+  record,
+  onClose,
+  onSave,
+}: {
+  record: ScaffoldedIdentityRecord;
+  onClose: () => void;
+  onSave: (updated: ScaffoldedIdentityRecord) => void;
+}) => {
+  const [local, setLocal] = React.useState(record);
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 px-6">
+      <div className="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+          <h2 className="text-base font-bold text-slate-900">Edit Identity Records</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+        </div>
+
+        <div className="border-b border-slate-100 px-6 pt-4 pb-0">
+          <span className="inline-block border-b-2 border-brand-blue pb-3 text-sm font-bold text-brand-blue">Identity Records</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-8 gap-y-6 px-6 py-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Issue Date for IdentityRecord
+            </label>
+            <input type="date" value={local.issueDate || ''} onChange={(e) => setLocal(p => ({ ...p, issueDate: e.target.value }))}
+              className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-brand-blue" />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Expire Date for IdentityRecord
+            </label>
+            <input type="date" value={local.expireDate || ''} onChange={(e) => setLocal(p => ({ ...p, expireDate: e.target.value }))}
+              className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-brand-blue" />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Identity No for IdentityRecord
+            </label>
+            <input type="text" value={local.identityNo || ''} onChange={(e) => setLocal(p => ({ ...p, identityNo: e.target.value }))}
+              placeholder="Please input" className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-brand-blue" />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Identity Type for IdentityRecord
+            </label>
+            <div className="flex h-11 items-center gap-2 rounded border border-slate-200 bg-slate-50 px-4">
+              <span className="text-sm font-medium text-slate-700">XX01 - Passport</span>
+              <span className="ml-auto rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">Pre-assessment</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Issuing Country/Region for IdentityRecord
+            </label>
+            <select value={local.issuingCountry || ''} onChange={(e) => setLocal(p => ({ ...p, issuingCountry: e.target.value }))}
+              className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-brand-blue">
+              <option value="">Please select</option>
+              <option>China</option>
+              <option>Singapore</option>
+              <option>Hong Kong</option>
+              <option>India</option>
+              <option>Malaysia</option>
+              <option>United States</option>
+              <option>United Kingdom</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700">
+              <span className="mr-1 text-rose-500">*</span>Issued By for IdentityRecord
+            </label>
+            <input type="text" value={local.issuedBy || ''} onChange={(e) => setLocal(p => ({ ...p, issuedBy: e.target.value }))}
+              placeholder="Please input" className="h-11 w-full rounded border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-brand-blue" />
+          </div>
+
+          <div className="col-span-2 space-y-2">
+            <label className="block text-sm font-bold text-slate-700">Attachment for IdentityRecord</label>
+            <div className="flex h-11 items-center gap-3 rounded border border-slate-200 bg-slate-50 px-4">
+              <Paperclip size={14} className="shrink-0 text-slate-400" />
+              <span className="flex-1 truncate text-sm text-slate-700">{local.attachmentFile}</span>
+              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">Pre-assessment</span>
+              <button className="shrink-0 text-xs font-bold text-brand-blue hover:underline">View</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 px-6 py-4">
+          <button onClick={onClose} className="h-11 rounded border border-slate-200 text-sm font-bold text-slate-700">Cancel</button>
+          <button onClick={() => onSave(local)} className="h-11 rounded bg-brand-blue text-sm font-bold text-white">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const IdentityRecordSection = ({
+  scaffolded,
+  onUpdate,
+}: {
+  scaffolded?: ScaffoldedIdentityRecord;
+  onUpdate: (updated: ScaffoldedIdentityRecord) => void;
+}) => {
+  const [editing, setEditing] = React.useState(false);
+  if (!scaffolded) return null;
+
+  const isEmpty = (v?: string) => !v || v.trim() === '';
+  const pendingCount = [scaffolded.identityNo, scaffolded.issueDate, scaffolded.expireDate, scaffolded.issuedBy, scaffolded.issuingCountry].filter(isEmpty).length;
+
+  return (
+    <>
+      <div className="mt-8 overflow-hidden rounded-lg border border-slate-200">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-slate-900">Identity Records</span>
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                {pendingCount} field{pendingCount > 1 ? 's' : ''} pending
+              </span>
+            )}
+          </div>
+          <button className="h-8 rounded border border-brand-blue px-4 text-xs font-bold text-brand-blue">Add</button>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left">
+            <tr>
+              {['Issue Date for IdentityRecord', 'Expire Date for IdentityRecord', 'Identity No for IdentityRecord', 'Identity Type for IdentityRecord', 'Issuing Country/Region for IdentityRecord', 'Operation'].map((h) => (
+                <th key={h} className="px-4 py-3 text-xs font-bold text-slate-500">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-slate-100">
+              <td className="px-4 py-4 text-slate-700">{scaffolded.issueDate || <span className="text-slate-300">—</span>}</td>
+              <td className="px-4 py-4 text-slate-700">{scaffolded.expireDate || <span className="text-slate-300">—</span>}</td>
+              <td className="px-4 py-4 text-slate-700">{scaffolded.identityNo || <span className="text-slate-300">—</span>}</td>
+              <td className="px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-700">XX01 - Passport</span>
+                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">Pre-assessment</span>
+                </div>
+              </td>
+              <td className="px-4 py-4 text-slate-700">{scaffolded.issuingCountry || <span className="text-slate-300">—</span>}</td>
+              <td className="px-4 py-4">
+                <button onClick={() => setEditing(true)} className="text-xs font-bold text-brand-blue hover:underline">Edit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {pendingCount > 0 && (
+          <div className="flex items-center gap-2 border-t border-amber-100 bg-amber-50/60 px-5 py-3 text-xs text-amber-700">
+            <ShieldCheck size={13} className="shrink-0" />
+            Passport scan pre-filled from pre-assessment. Click <strong>Edit</strong> to complete the remaining required fields.
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <IdentityRecordEditModal
+          record={scaffolded}
+          onClose={() => setEditing(false)}
+          onSave={(updated) => { onUpdate(updated); setEditing(false); }}
+        />
+      )}
+    </>
+  );
+};
+
 const CompleteWorkVisaStep = ({
   draft,
   activeVisaType,
   activeSection,
-  setDraft,
   setActiveVisaType,
   setActiveSection,
   handleUpload,
@@ -1467,7 +1666,6 @@ const CompleteWorkVisaStep = ({
   draft: Partial<AssessmentRequest>;
   activeVisaType: 'Employment' | 'Dependant';
   activeSection: 'candidate' | 'info' | 'materials' | 'remarks';
-  setDraft: React.Dispatch<React.SetStateAction<Partial<AssessmentRequest>>>;
   setActiveVisaType: React.Dispatch<React.SetStateAction<'Employment' | 'Dependant'>>;
   setActiveSection: React.Dispatch<React.SetStateAction<'candidate' | 'info' | 'materials' | 'remarks'>>;
   handleUpload: (docId: string) => void;
@@ -1478,53 +1676,6 @@ const CompleteWorkVisaStep = ({
     <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-4 py-2">
       <section className="rounded-xl bg-slate-50 p-8">
         <div className="space-y-10">
-          <div className="space-y-5">
-            <label className="block text-sm font-medium text-slate-900">
-              <span className="mr-1 text-rose-500">*</span>Is a visa application required?
-            </label>
-            <div className="flex gap-10">
-              <label className="flex cursor-pointer items-center gap-3">
-                <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaRequired ? 'border-brand-blue' : 'border-slate-300'}`}>
-                  {draft.visaRequired && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
-                </span>
-                <input type="radio" className="hidden" checked={draft.visaRequired === true} onChange={() => setDraft((prev) => ({ ...prev, visaRequired: true }))} />
-                <span className={`text-sm font-medium ${draft.visaRequired ? 'text-brand-blue' : 'text-slate-600'}`}>Yes</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3">
-                <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaRequired === false ? 'border-brand-blue' : 'border-slate-300'}`}>
-                  {draft.visaRequired === false && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
-                </span>
-                <input type="radio" className="hidden" checked={draft.visaRequired === false} onChange={() => setDraft((prev) => ({ ...prev, visaRequired: false }))} />
-                <span className={`text-sm font-medium ${draft.visaRequired === false ? 'text-brand-blue' : 'text-slate-600'}`}>No</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <label className="block text-sm font-medium text-slate-900">
-              <span className="mr-1 text-rose-500">*</span>Which type of visa do you need to apply for?
-            </label>
-            <div className="flex flex-wrap gap-10">
-              {[
-                { id: 'Employment', label: 'Employment Visa' },
-                { id: 'Both', label: 'Employment + Dependant' }
-              ].map((type) => (
-                <label key={type.id} className="flex cursor-pointer items-center gap-3">
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${draft.visaApplyType === type.id ? 'border-brand-blue' : 'border-slate-300'}`}>
-                    {draft.visaApplyType === type.id && <span className="h-2.5 w-2.5 rounded-full bg-brand-blue" />}
-                  </span>
-                  <input
-                    type="radio"
-                    className="hidden"
-                    checked={draft.visaApplyType === type.id}
-                    onChange={() => setDraft((prev) => ({ ...prev, visaApplyType: type.id as any }))}
-                  />
-                  <span className={`text-sm font-medium ${draft.visaApplyType === type.id ? 'text-brand-blue' : 'text-slate-600'}`}>{type.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           <div className="border-b border-slate-200">
             <div className="flex gap-10">
               {(draft.visaApplyType === 'Both' || draft.visaApplyType === 'Employment') && (
@@ -1597,18 +1748,32 @@ const CompleteWorkVisaStep = ({
                   {documents.map((doc) => (
                     <tr key={doc.id} className="hover:bg-slate-100/70">
                       <td className="py-4 pr-4">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900">{doc.name}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900">{doc.name}</span>
+                            {doc.source === 'pre_assessment' && (
+                              <span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                Pre-assessment
+                              </span>
+                            )}
+                          </div>
                           <span className={`text-[10px] font-bold ${doc.isRequired ? 'text-rose-500' : 'text-slate-400'}`}>
                             {doc.isRequired ? '* Required' : 'Optional'}
                           </span>
+                          {doc.source === 'pre_assessment' && doc.file && (
+                            <span className="text-[11px] text-slate-400">{doc.file}</span>
+                          )}
                         </div>
                       </td>
                       <td className={`py-4 text-[11px] font-black uppercase tracking-tight ${doc.status === 'Uploaded' ? 'text-emerald-600' : 'text-slate-300'}`}>
                         {doc.status}
                       </td>
                       <td className="py-4 text-right">
-                        <button onClick={() => handleUpload(doc.id)} className="rounded-lg px-4 py-2 text-xs font-bold text-brand-blue hover:bg-blue-50">UPLOAD</button>
+                        {doc.source === 'pre_assessment' ? (
+                          <button className="rounded-lg px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-50">VIEW</button>
+                        ) : (
+                          <button onClick={() => handleUpload(doc.id)} className="rounded-lg px-4 py-2 text-xs font-bold text-brand-blue hover:bg-blue-50">UPLOAD</button>
+                        )}
                       </td>
                     </tr>
                   ))}

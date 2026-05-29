@@ -51,6 +51,18 @@ export interface DocumentItem {
   status: 'Missing' | 'Uploaded' | 'Not uploaded';
   lastUpdated?: string;
   file?: string;
+  source?: 'pre_assessment';
+}
+
+export interface ScaffoldedIdentityRecord {
+  identityType: string;
+  attachmentFile: string;
+  source: 'pre_assessment';
+  identityNo?: string;
+  issueDate?: string;
+  expireDate?: string;
+  issuedBy?: string;
+  issuingCountry?: string;
 }
 
 export interface HistoryRecord {
@@ -93,4 +105,6 @@ export interface AssessmentRequest {
   assessmentRejectRemarks?: string;
   pendingAssignee?: string;
   completedRecords?: HistoryRecord[];
+  passportScanPreAssessment?: string;
+  scaffoldedIdentityRecord?: ScaffoldedIdentityRecord;
 }

@@ -150,12 +150,53 @@ export const ReviewDashboard = ({ requests, onUpdate, role = 'sd' }: ReviewDashb
           }}
           onApprove={(remarks) => {
             const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            const date = ts.split(' ')[0];
+
+            // Write-back: bridge passport scan uploaded during pre-assessment into
+            // the documents list so onboarding completion shows it as pre-filled.
+            let updatedDocuments = selectedRequest.documents;
+            if (selectedRequest.passportScanPreAssessment) {
+              const passportDocIndex = updatedDocuments.findIndex((d) =>
+                d.name.toLowerCase().includes('passport'),
+              );
+              if (passportDocIndex >= 0) {
+                updatedDocuments = updatedDocuments.map((d, i) =>
+                  i === passportDocIndex
+                    ? { ...d, status: 'Uploaded' as const, file: selectedRequest.passportScanPreAssessment, lastUpdated: date, source: 'pre_assessment' as const }
+                    : d,
+                );
+              } else {
+                updatedDocuments = [
+                  ...updatedDocuments,
+                  {
+                    id: `doc-passport-${Date.now()}`,
+                    name: 'Passport Bio Page',
+                    isRequired: true,
+                    status: 'Uploaded' as const,
+                    file: selectedRequest.passportScanPreAssessment,
+                    lastUpdated: date,
+                    source: 'pre_assessment' as const,
+                  },
+                ];
+              }
+            }
+
+            const scaffoldedIdentityRecord = selectedRequest.passportScanPreAssessment
+              ? {
+                  identityType: 'Passport',
+                  attachmentFile: selectedRequest.passportScanPreAssessment,
+                  source: 'pre_assessment' as const,
+                }
+              : undefined;
+
             onUpdate(selectedRequest.id, Status.Pending, {
               currentStage: 'onboarding_info_completion',
               currentTask: 'Complete Onboarding Info',
               pendingAssignee: '[Client Contact] Client-Jelena',
               returnRemarks: undefined,
               approvalRemarks: remarks.trim() || undefined,
+              documents: updatedDocuments,
+              scaffoldedIdentityRecord,
               completedRecords: [
                 {
                   id: `r-${Date.now()}`,
@@ -164,6 +205,7 @@ export const ReviewDashboard = ({ requests, onUpdate, role = 'sd' }: ReviewDashb
                   action: 'Confirm Visa Assessment',
                   meta: [
                     'User: Assessment Approved',
+                    ...(selectedRequest.passportScanPreAssessment ? [`Passport Scan Written Back: ${selectedRequest.passportScanPreAssessment}`] : []),
                     ...(remarks.trim() ? [`Remarks: ${remarks.trim()}`] : []),
                     `Completion Date: ${ts}`,
                   ],
@@ -900,16 +942,8 @@ const VisaRequirementView = ({
       : dependentInfo;
 
   return (
-    <div className="pt-8">
-      <div className="grid grid-cols-2 gap-x-24 gap-y-7 text-sm">
-        <ReadOnlyField label="Is a visa application required?" value={request.visaRequired === false ? 'NO' : 'YES'} />
-        <ReadOnlyField label="Which type of visa do you need to apply for?" value={formatVisaApplicationType(request.visaApplyType)} />
-        {request.visaRequired && (
-          <ReadOnlyField label="Is visa pre-assessment required?" value={request.visaAssessmentRequired ? 'Yes' : 'No'} />
-        )}
-      </div>
-
-      <div className="mt-7 flex gap-10 border-b border-slate-200">
+    <div className="pt-4">
+      <div className="flex gap-10 border-b border-slate-200">
         {(['Employment', 'Dependent'] as VisaScope[]).map((scope) => (
           <React.Fragment key={scope}>
             <TabButton
@@ -1139,7 +1173,14 @@ const DocumentChecklist = ({ documents }: { documents: DocumentItem[] }) => (
       <tbody className="divide-y divide-slate-100">
         {documents.map((doc) => (
           <tr key={doc.id}>
-            <td className="px-4 py-4 font-medium text-slate-800">{doc.name}</td>
+            <td className="px-4 py-4 font-medium text-slate-800">
+              <span>{doc.name}</span>
+              {doc.source === 'pre_assessment' && (
+                <span className="ml-2 inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                  Pre-assessment
+                </span>
+              )}
+            </td>
             <td className="px-4 py-4 text-slate-600">{doc.isRequired ? 'Required' : 'Optional'}</td>
             <td className="px-4 py-4">
               <span className={`inline-flex items-center gap-1 text-xs font-bold ${doc.status === 'Uploaded' ? 'text-emerald-600' : 'text-amber-600'}`}>

@@ -76,6 +76,7 @@ export const INITIAL_REQUESTS: AssessmentRequest[] = [
     visaRequired: true,
     visaAssessmentRequired: true,
     visaApplyType: 'Both',
+    passportScanPreAssessment: 'amanda_lee_passport_scan.pdf',
   },
   {
     id: 'VA-2026-0030',
