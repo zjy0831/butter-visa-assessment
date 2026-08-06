@@ -89,12 +89,38 @@ flowchart TD
 | 字段                                             | 说明                                                        |
 | :--------------------------------------------- | :-------------------------------------------------------- |
 | `Is a visa application required?`              | Yes                                                       |
-| `Which type of visa do you need to apply for?` | Employment Visa / Dependent Visa / Employment + Dependent |
-| `Is visa pre-assessment required?`             | Yes / No                                                  |
+| `Which type of visa do you need to apply for?` | Employment Visa / Employment + Dependent         |
+| `Is visa pre-assessment required?`             | Yes / No                                         |
 
-一级 Tab（根据 `Which type of visa do you need to apply for?` 显隐）：`Employment Visa` / `Dependent Visa`
+一级 Tab（根据 `Which type of visa do you need to apply for?` 显隐）：`Employment Visa` / `Dependent Visa`（Dependent Visa tab 仅当 `Employment + Dependent` 时展示，不支持单独 Dependant Visa）
 
 二级 Tab（每个一级 Tab 下固定展示）：`Visa Info` / `Evaluation Materials` / `Confirm Document Checklist`
+
+**Employment Visa > Visa Info** 包含以下只读字段：
+
+| 字段 | 必填 | 说明 |
+| :-- | :-- | :-- |
+| Employment Visa Type | 是 | — |
+| Expected Stay / Work Duration | 是 | — |
+| Long-term Residency in Any Country | 否 | — |
+| Upload Residency / Work Permit / PR Document Scan | 条件必填 | 仅 Long-term Residency 有值时展示 |
+| Within the Issuing Country/Region? | — | out of country / in country |
+| Country / Region at the time of Visa application | 是 | — |
+
+**Dependent Visa > Dependant Info** 只展示：
+
+| 字段 | 说明 |
+| :-- | :-- |
+| Dependant Name | — |
+| Dependant Relationship | — |
+
+**Dependent Visa > Visa Info** 字段：
+
+| 字段 | 必填 | 说明 |
+| :-- | :-- | :-- |
+| Dependent Visa Type | 是 | — |
+| Within the Issuing Country/Region? | — | out of country / in country |
+| Country / Region at the time of Visa application | 否 | 非必填 |
 
 **Remark & Attachment Tab**（只读展示，来自 Other Remarks & Attachment 步骤）：
 
@@ -166,8 +192,10 @@ pendingTask = Confirm Visa Assessment
 - AC1：Client 提交需要预评估的 Request 后，Request 列表该条目 `Status = Pending`，Status tooltip 显示 `Pending Task: Confirm Visa Assessment`
 - AC2：SD 点击 `View` 进入 Request Info，当前节点为 `Confirm Visa Assessment [EoR - Onboarding]`，展示 `Process` 按钮
 - AC3：点击 `Process` 后，打开 `SD Confirm Visa Assessment` 弹窗，展示三个 Tab（Candidate Info / Visa Requirements / Remark & Attachment）及说明文案
-- AC4：`Candidate Info` Tab 只读展示客户填写的 9 个预评估候选人字段，不展示 Employment Visa 下原有的 Candidate Info 区块
-- AC5：`Visa Requirements` Tab 展示签证类型、Visa Info、已上传材料和地区材料清单，不重复展示 Candidate Info
+- AC4：`Candidate Info` Tab 只读展示客户填写的预评估候选人字段，不展示 Employment Visa 下原有的 Candidate Info 区块
+- AC5：`Visa Requirements` Tab 展示签证类型（仅 Employment Visa / Employment + Dependent，不出现单独 Dependent Visa 选项）、Visa Info、已上传材料和地区材料清单，不重复展示 Candidate Info
+- AC5-a：Employment Visa Info 展示 `Expected Stay / Work Duration`（必填）、`Long-term Residency in Any Country`（非必填）、`Upload Residency / Work Permit / PR Document Scan`（有 Long-term Residency 值时展示），不展示 `Departure Country / Region before entering Visa Location`
+- AC5-b：Dependant Visa Info 中 `Country / Region at the time of Visa application` 标记为非必填；Dependant Info 只展示 `Dependant Name` 和 `Dependant Relationship`，不展示 Nationality / Current Residence；不展示 `Departure Country / Region before entering Visa Location`
 - AC6：SD 点击 `Assessment Approved` → 弹出二次确认弹窗 → Remarks 可为空 → 点击 `Confirm` → `pendingTask = Complete Onboarding Info`，通知 Client
 - AC7：SD 点击 `Assessment Not Approved` → 弹出二次确认弹窗 → Remarks 为空时 `Confirm` disabled → 填写原因后点击 `Confirm` → `requestStatus = Closed`，通知 Client
 - AC8：SD 点击 `Return to Client` → 直接执行 → `pendingTask = Supplement Assessment Materials`，通知 Client

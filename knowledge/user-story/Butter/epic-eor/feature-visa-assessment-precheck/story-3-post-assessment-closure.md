@@ -109,22 +109,22 @@ flowchart TD
 | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
 | `visaRequired = false`                                 | 只展示 `Is a visa application required? = NO`                                                                                 |
 | `visaRequired = true`，`visaAssessmentRequired = false` | 展示 `Is a visa application required? = YES`、`Visa Application Type`、`Is visa pre-assessment required? = No`                 |
-| `visaRequired = true`，`visaAssessmentRequired = true`  | 展示已通过的线上预评估信息，包含 Employment Visa / Dependent Visa 相关的 Candidate Info/Dependent Info、Visa Requirements、Evaluation Materials |
+| `visaRequired = true`，`visaAssessmentRequired = true`  | 展示已通过的线上预评估信息，包含 Employment Visa / Dependent Visa（仅 Employment + Dependent 时出现）相关的 Candidate Info / Dependant Info（Name + Relationship）、Visa Requirements、Evaluation Materials |
 
 **Confirm Visa Type step（仅** `visaRequired = true` **场景）**：
 
-| 区域                  | 说明                                                                               | 显示条件                             |
-| :------------------ | :------------------------------------------------------------------------------- | :------------------------------- |
-| 页面顶部富文本框            | SD 填写线下预评估沟通过程、判断依据；支持上传附件（如邮件截图）                                                | `visaAssessmentRequired = false` |
-| Employment Visa tab | Visa Type（下拉）+ `Within the Issuing Country/Region?`（out of country / in country） | -                                |
-| Dependant Visa tab  | Visa Type（下拉）                                                                    | -                                |
-| 材料清单                | 根据 Project Location、Visa  Type 等从系统配置取材料清单（同当前逻辑）                                | -                                |
+| 区域                  | 说明                                                                                                                                                                   | 显示条件                             |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------- |
+| 页面顶部富文本框            | SD 填写线下预评估沟通过程、判断依据；支持上传附件（如邮件截图）                                                                                                                                  | `visaAssessmentRequired = false` |
+| Employment Visa tab | Visa Type（下拉）+ Expected Stay / Work Duration（必填）+ Long-term Residency in Any Country（非必填）+ Upload Residency / Work Permit / PR Document Scan（条件必填）+ `Within the Issuing Country/Region?` | -                                |
+| Dependant Visa tab  | Visa Type（下拉）+ Country / Region at the time of Visa application（非必填）                                                                                               | 仅 `Employment + Dependant` 时展示   |
+| 材料清单                | 根据 Project Location、Visa Type 等从系统配置取材料清单（同当前逻辑）                                                                                                                   | -                                |
 
 Tab 展示规则：
 
 - `Visa Application Type = Employment Visa` → 只展示 Employment Visa tab
-- `Visa Application Type = Dependant Visa` → 只展示 Dependant Visa tab
-- `Visa Application Type = Employment + Dependant` → 展示两个 tab
+- `Visa Application Type = Employment + Dependant` → 展示 Employment Visa 和 Dependant Visa 两个 tab
+- 不支持单独 `Dependant Visa` 类型，不展示对应 tab
 
 #### (3) 规则逻辑（核心）
 
@@ -160,8 +160,8 @@ Tab 展示规则：
 **场景 – Confirm Order 签证信息差异展示**
 
 - AC8：`visaRequired = false` 时，Confirm Order 的 `Visa Requirements` Tab 只展示 `Is a visa application required? = NO`，不展示 `Confirm Visa Type` step
-- AC9：`visaRequired = true`，`visaAssessmentRequired = false` 时，Confirm Order 展示 `Confirm Visa Type` step；step 顶部有富文本框；Employment Visa tab 含 `Within the Issuing Country/Region?` 字段；材料清单根据 visa type 带出
-- AC10：`visaRequired = true`，`visaAssessmentRequired = true` 时，Confirm Order 中可查看线上预评估 Candidate Info、Visa Requirements、评估材料及 Other Remarks
+- AC9：`visaRequired = true`，`visaAssessmentRequired = false` 时，Confirm Order 展示 `Confirm Visa Type` step；step 顶部有富文本框；Employment Visa tab 含 `Expected Stay / Work Duration`（必填）、`Long-term Residency in Any Country`（非必填）、`Upload Residency / Work Permit / PR Document Scan`（条件必填）和 `Within the Issuing Country/Region?`；Dependant Visa tab 仅 `Employment + Dependant` 时显示，不展示单独 Dependant Visa；材料清单根据 visa type 带出
+- AC10：`visaRequired = true`，`visaAssessmentRequired = true` 时，Confirm Order 中可查看线上预评估 Candidate Info、Visa Requirements（含新增 Employment Visa 字段）、评估材料及 Other Remarks；Dependant Info 只展示 Name 和 Relationship
 - AC11：SD 在 Confirm Order 完成接单并 Open Service Order 后，`requestStatus` 变为 `Processing`
 
 **场景 – 异常路径（Edge Cases）**

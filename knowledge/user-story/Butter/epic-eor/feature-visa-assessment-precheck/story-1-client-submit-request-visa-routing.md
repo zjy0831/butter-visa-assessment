@@ -109,7 +109,7 @@ flowchart TD
 | 步骤                         | 字段                                             | 类型                                                                                     | 必填 | 展示条件                        | 说明                                                                          |
 | :------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------- | :- | :-------------------------- | :-------------------------------------------------------------------------- |
 | Visa Application Type      | `Is a visa application required?`              | Radio· Yes, candidate needs visa support· No, candidate is local or already authorized | 是  | 始终                          | 判断候选人是否需要办理签证                                                               |
-| Visa Application Type      | `Which type of visa do you need to apply for?` | Radio· Employment Visa· Dependant Visa· Employment + Dependant                         | 是  | `visa required = Yes`（单人模式） | 签证申请类型；批量模式下不展示此字段，改在候选人维度的 Visa Requirements 列表填写                          |
+| Visa Application Type      | `Which type of visa do you need to apply for?` | Radio· Employment Visa· Employment + Dependant                                         | 是  | `visa required = Yes`（单人模式） | 签证申请类型；不支持单独办理 Dependant Visa，仅可选 Employment Visa 或含家属的组合类型；批量模式下不展示此字段，改在候选人维度的 Visa Requirements 列表填写 |
 | Visa Application Type      | `Is visa pre-assessment required?`             | Radio· Yes, need online assessment· No, already assessed offline                       | 是  | `visa required = Yes`       | 是否需要走线上预评估                                                                  |
 | Basic Candidate Info       | Basic Candidate Info 字段集                       | —                                                                                      | —  | 分支 C                        | 字段由底层 Attribute 配置中标记 `Used for Visa Assessment = true` 的字段动态渲染。详见 Story 5。 |
 | Visa Requirements          | Visa Requirements 字段集                          | —                                                                                      | —  | 分支 C                        | 沿用当前签证预评估表单字段（Visa Info、Evaluation Materials 等），无变更。                        |
@@ -142,14 +142,26 @@ flowchart TD
 **Visa Requirements 子步骤内容层级**（分支 C）：
 
 ```
-Employment Visa（当 Visa Application Type 含 Employment）
-  └─ Visa Info（Employment Visa Type / Within the Issuing Country/Region? / 申请地 / 出发地）
+Employment Visa（始终展示，因 Visa Application Type 不支持单独 Dependant）
+  └─ Visa Info
+       - Employment Visa Type（必填）
+       - Expected Stay / Work Duration（必填）
+       - Long-term Residency in Any Country（非必填）
+       - Upload Residency / Work Permit / PR Document Scan
+         （条件必填：Long-term Residency in Any Country 选择任意选项时展示且必填）
+       - Within the Issuing Country/Region?（out of country / in country）
+       - Country / Region at the time of Visa application（必填）
   └─ Evaluation Materials
   └─ Confirm Document Checklist
 
-Dependant Visa（当 Visa Application Type 含 Dependant）
-  └─ Dependent Info（Dependent Name / Relationship / Nationality / Current Residence）
-  └─ Visa Info（Dependent Visa Type / Within the Issuing Country/Region? / 申请地 / 出发地）
+Dependant Visa（仅当 Visa Application Type = Employment + Dependant 时展示）
+  └─ Dependant Info
+       - Dependant Name（必填）
+       - Dependant Relationship（必填）
+  └─ Visa Info
+       - Dependent Visa Type（必填）
+       - Within the Issuing Country/Region?（out of country / in country）
+       - Country / Region at the time of Visa application（非必填）
   └─ Evaluation Materials
   └─ Confirm Document Checklist
 ```
@@ -173,7 +185,12 @@ Dependant Visa（当 Visa Application Type 含 Dependant）
 - AC3：分支 B — 选择 `Is visa required? = Yes` + `Is pre-assessment required? = No` 后，Wizard 跳至 `Provide Candidate Information`，不展示预评估子步骤；提交后 Pending Task 为 `Confirm Order [EoR - Onboarding]`
 - AC4：分支 C — 选择 `Is visa required? = Yes` + `Is pre-assessment required? = Yes` 后，Wizard 进入 `Candidate Info` → `Visa Requirements` 子步骤，跳过 `Provide Candidate Information`；提交后 Pending Task 为 `Confirm Visa Assessment`
 - AC5：分支 C — `Work Location` 变更后，`Visa Requirements` 中的 Evaluation Materials 材料清单自动刷新
-- AC6：分支 C — 选择 `Visa Application Type = Employment + Dependant` 时，Visa Requirements 步骤同时展示 Employment Visa 和 Dependant Visa 两部分内容
+- AC6：分支 C — `Visa Application Type` 只展示 `Employment Visa` 和 `Employment + Dependant` 两个选项，不展示单独的 `Dependant Visa` 选项
+- AC7：分支 C — 选择 `Visa Application Type = Employment + Dependant` 时，Visa Requirements 步骤同时展示 Employment Visa 和 Dependant Visa 两部分内容
+- AC8：分支 C — Employment Visa Info 中展示 `Expected Stay / Work Duration`（必填）和 `Long-term Residency in Any Country`（非必填）；当 `Long-term Residency in Any Country` 选择了任意选项时，`Upload Residency / Work Permit / PR Document Scan` 字段出现且为必填
+- AC9：分支 C — Employment Visa Info 和 Dependant Visa Info 均不展示 `Departure Country / Region before entering Visa Location` 字段
+- AC10：分支 C — Dependant Info 只收集 `Dependant Name` 和 `Dependant Relationship` 两个字段，不展示 Nationality / Current Residence
+- AC11：分支 C — Dependant Visa Info 中 `Country / Region at the time of Visa application` 为非必填
 
 **场景 – 异常路径（Edge Cases）**
 

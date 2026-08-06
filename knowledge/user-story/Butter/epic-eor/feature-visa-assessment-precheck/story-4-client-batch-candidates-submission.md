@@ -116,7 +116,8 @@ flowchart TD
 - 标题：`Visa Requirements`
 - 副文案：`Total X candidates require visa pre-assessment.`
 - 候选人名单来自 Basic Candidate Info
-- 列表字段：Name / Which type of visa do you want to apply for? / Employment Visa Type / Within the Issuing Country/Region? / Country/Region at the time of Visa application / Departure Country/Region before entering Visa Location / Evaluation Materials / Operation
+- 列表字段：Name / Which type of visa do you want to apply for?（Employment Visa / Employment + Dependant，不含单独 Dependant Visa）/ Employment Visa Type / Expected Stay / Work Duration / Long-term Residency in Any Country / Upload Residency / Work Permit / PR Document Scan（条件必填）/ Within the Issuing Country/Region? / Country/Region at the time of Visa application（员工签必填，家属签非必填）/ Dependant Name / Dependant Relationship / Evaluation Materials / Operation
+  - 不展示 `Departure Country/Region before entering Visa Location` 字段
   - 具体交互可参考当前批量模式候选人签证信息收集
 
 **批量 Provide Candidate Information 列表页**（分支 A / B）：
@@ -153,7 +154,8 @@ flowchart TD
 - AC1：在 Add Candidate Mode 页选择 `Add multiple new hires` 后点击 `Next`，进入批量 `Visa Application Type` 步骤，该步骤不展示 `Which type of visa do you need to apply for?`
 - AC2：分支 A/B — 进入批量 `Provide Candidate Information` 列表，支持 Select / Import / Add；提交后每个候选人生成独立 Request，Pending Task 均为 `Confirm Order [EoR - Onboarding]`
 - AC3：分支 C — 依次进入 `Basic Candidate Info` 列表和 `Visa Requirements` 列表；`Basic Candidate Info` 支持 Import / Add；`Visa Requirements` 不展示 Import / Add，候选人来自上一步
-- AC4：分支 C — `Visa Requirements` 列表中每行支持 inline 编辑；点击 `Edit` 打开该候选人的 visa requirements 明细页
+- AC4：分支 C — `Visa Requirements` 列表的 `Which type of visa do you want to apply for?` 列只展示 `Employment Visa` 和 `Employment + Dependant` 两个选项，不展示单独 `Dependant Visa`；列表不包含 `Departure Country/Region before entering Visa Location` 列；新增 `Expected Stay / Work Duration`、`Long-term Residency in Any Country`、`Upload Residency / Work Permit / PR Document Scan` 列；Dependant Info 只收集 `Dependant Name` 和 `Dependant Relationship`
+- AC4a：分支 C — `Visa Requirements` 列表中每行支持 inline 编辑；点击 `Edit` 打开该候选人的 visa requirements 明细页
 - AC5：分支 C — 提交后每个候选人生成独立 Request，Pending Task 均为 `Confirm Visa Assessment`；Request 列表不展示批次关系
 - AC6：`Other Remarks & Attachment` 中填写的备注和附件，被每个拆分后的 Request 共同继承
 - AC7：Operation 列在横向滚动时固定在表格右侧，始终可见
